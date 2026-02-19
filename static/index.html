@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arkana Pulse</title>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #131722; color: white; font-family: sans-serif; }
+        #chart-container { width: 100%; height: 400px; margin-top: 20px; }
+        .info { padding: 15px; text-align: center; }
+        #rsi-value { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2 id="symbol-name">Загрузка...</h2>
+        <p>Индикатор RSI: <span id="rsi-value">--</span></p>
+    </div>
+    <div id="chart-container"></div>
+
+    <script>
+        const rsiElement = document.getElementById('rsi-value');
+        const symbolElement = document.getElementById('symbol-name');
+        
+        function showError(msg) {
+            rsiElement.innerText = "ОШИБКА: " + msg;
+            rsiElement.style.color = "red";
+            console.error(msg);
+        }
+
+        async function initApp() {
+            try {
+                const container = document.getElementById('chart-container');
+                if (!container) return;
+
+                // Проверка: загрузилась ли библиотека
+                if (typeof LightweightCharts === 'undefined') {
+                    throw new Error("Библиотека графиков не найдена");
+                }
+
+                // Создаем график
+                const chart = LightweightCharts.createChart(container, {
+                    layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
+                    grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
+                    width: container.clientWidth,
+                    height: 400,
+                });
+
+                // Создаем серию свечей
+                const candlestickSeries = chart.addCandlestickSeries({
+                    upColor: '#26a69a', downColor: '#ef5350', 
+                    borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350'
+                });
+
+                // Загружаем данные
+                const symbol = "BTCUSDT";
+                // Добавляем ?t=... чтобы Telegram не брал старые данные из кэша
+                const response = await fetch(`/api/v1/candles/${symbol}?t=${Date.now()}`);
+                
+                if (!response.ok) throw new Error("Сервер ответил с ошибкой");
+                
+                const data = await response.json();
+
+                if (data.candles && data.candles.length > 0) {
+                    candlestickSeries.setData(data.candles);
+                    chart.timeScale().fitContent();
+                    
+                    rsiElement.innerText = data.rsi;
+                    rsiElement.style.color = "#00ff00";
+                    symbolElement.innerText = symbol;
+                } else {
+                    showError("Данные пусты");
+                }
+
+                // Авто-размер при повороте экрана
+                window.addEventListener('resize', () => {
+                    chart.resize(container.clientWidth, 400);
+                });
+
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        // Запуск с задержкой, чтобы WebView Telegram успел инициализироваться
+        window.onload = () => {
+            setTimeout(initApp, 500);
+        };
+    </script>
+</body>
+</html>
