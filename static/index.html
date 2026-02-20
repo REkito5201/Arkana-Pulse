@@ -6,84 +6,176 @@
     <title>Arkana Pulse</title>
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #131722; color: white; font-family: sans-serif; }
-        #chart-container { width: 100%; height: 400px; margin-top: 20px; }
+        body { margin: 0; padding: 0; background-color: #131722; color: #ffffff; font-family: sans-serif; }
+        .controls { padding: 15px; text-align: center; background: #1e222d; border-bottom: 1px solid #3d3d5c; }
+        
+    /* Стили селектора, чтобы он не был белым на белом */
+    #coin-select { 
+        appearance: none;          /* Убираем системный вид Android/iOS */
+        -webkit-appearance: none;  /* Для Safari/Chrome */
+        -moz-appearance: none;     /* Для Firefox */
+
+        padding: 12px; 
+        border-radius: 8px; 
+        background-color: #2b2b43 !important; /* Темный фон */
+        color: #ffffff !important;           /* БЕЛЫЙ текст */
+        border: 1px solid #3d3d5c !important; 
+        font-size: 16px; 
+        width: 90%; 
+        outline: none;
+        cursor: pointer;
+
+        /* Добавим маленькую иконку стрелочки справа, раз мы убрали системную */
+        background-image: url('data:image/svg+xml;charset=US-ASCII,<svg%20xmlns="http://www.w3.org/2000/svg"%20width="292.4"%20height="292.4"><path%20fill="%23FFFFFF"%20d="M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z"/></svg>');
+        background-repeat: no-repeat;
+        background-position: right 12px top 50%;
+        background-size: 12px auto;
+    }
+
+    /* Стили для выпадающих пунктов (работает не во всех WebView, но помогает) */
+    #coin-select option {
+        background-color: #1e222d;
+        color: white;
+    }
+
         .info { padding: 15px; text-align: center; }
+        #symbol-name { color: #ffffff; margin: 5px 0; font-size: 1.5rem; }
+        #rsi-container { font-size: 1.1rem; color: #d1d4dc; }
         #rsi-value { font-weight: bold; }
+        
+        #chart-container { width: 100%; height: 400px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="info">
-        <h2 id="symbol-name">Загрузка...</h2>
-        <p>Индикатор RSI: <span id="rsi-value">--</span></p>
+
+    <div class="controls">
+        <select id="coin-select">
+            <option value="BTCUSDT">BTC / USDT</option>
+            <option value="ETHUSDT">ETH / USDT</option>
+            <option value="SOLUSDT">SOL / USDT</option>
+            <option value="BNBUSDT">BNB / USDT</option>
+        </select>
     </div>
+
+    <div class="info">
+        <h2 id="symbol-name">BTCUSDT</h2>
+        <div id="rsi-container">RSI: <span id="rsi-value">--</span></div>
+    </div>
+
     <div id="chart-container"></div>
 
     <script>
-        const rsiElement = document.getElementById('rsi-value');
-        const symbolElement = document.getElementById('symbol-name');
-        
-        function showError(msg) {
-            rsiElement.innerText = "ОШИБКА: " + msg;
-            rsiElement.style.color = "red";
-            console.error(msg);
-        }
+        // Интерфейсы в стиле TypeScript для структуры данных
+        /** * @typedef {Object} Candle
+         * @property {number} time
+         * @property {number} open
+         * @property {number} high
+         * @property {number} low
+         * @property {number} close
+         */
 
-        async function initApp() {
+        // Глобальные переменные с типизацией (в уме)
+        /** @type {string} */
+        let currentSymbol = "BTCUSDT";
+        /** @type {any} */
+        let candlestickSeries = null;
+        /** @type {any} */
+        let chart = null;
+
+        /**
+         * Функция обновления данных (аналог private async updateData(): Promise<void>)
+         */
+        async function updateData() {
+            const rsiElement = document.getElementById('rsi-value');
+            const symbolElement = document.getElementById('symbol-name');
+
             try {
-                const container = document.getElementById('chart-container');
-                if (!container) return;
+                // Используем обратные кавычки для вставки переменной currentSymbol
+                const response = await fetch(`/api/v1/candles/${currentSymbol}?v=${Math.random()}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                // Проверка: загрузилась ли библиотека
-                if (typeof LightweightCharts === 'undefined') {
-                    throw new Error("Библиотека графиков не найдена");
-                }
-
-                // Создаем график
-                const chart = LightweightCharts.createChart(container, {
-                    layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
-                    grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
-                    width: container.clientWidth,
-                    height: 400,
-                });
-
-                // Создаем серию свечей
-                const candlestickSeries = chart.addCandlestickSeries({
-                    upColor: '#26a69a', downColor: '#ef5350', 
-                    borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350'
-                });
-
-                // Загружаем данные
-                const symbol = "BTCUSDT";
-                // Добавляем ?t=... чтобы Telegram не брал старые данные из кэша
-                const response = await fetch(`/api/v1/candles/${symbol}?t=${Date.now()}`);
-                
-                if (!response.ok) throw new Error("Сервер ответил с ошибкой");
-                
                 const data = await response.json();
 
                 if (data.candles && data.candles.length > 0) {
+                    // Обновляем серию свечей
                     candlestickSeries.setData(data.candles);
-                    chart.timeScale().fitContent();
                     
-                    rsiElement.innerText = data.rsi;
-                    rsiElement.style.color = "#00ff00";
-                    symbolElement.innerText = symbol;
-                } else {
-                    showError("Данные пусты");
+                    // Обновляем текст RSI
+                    const rsi = parseFloat(data.rsi);
+                    rsiElement.innerText = rsi.toFixed(2);
+                    
+                    // Логика цвета RSI (70/30)
+                    if (rsi >= 70) {
+                        rsiElement.style.color = "#ef5350"; // Перекупленность
+                    } else if (rsi <= 30) {
+                        rsiElement.style.color = "#26a69a"; // Перепроданность
+                    } else {
+                        rsiElement.style.color = "#ffffff"; // Норма
+                    }
+
+                    symbolElement.innerText = currentSymbol;
                 }
-
-                // Авто-размер при повороте экрана
-                window.addEventListener('resize', () => {
-                    chart.resize(container.clientWidth, 400);
-                });
-
-            } catch (e) {
-                showError(e.message);
+            } catch (error) {
+                console.error("Update error:", error);
+                if (rsiElement) rsiElement.style.color = "red";
             }
         }
 
-        // Запуск с задержкой, чтобы WebView Telegram успел инициализироваться
+        /**
+         * Инициализация приложения (аналог public async initApp(): Promise<void>)
+         */
+        async function initApp() {
+            const container = document.getElementById('chart-container');
+            const coinSelect = document.getElementById('coin-select');
+
+            if (!container || typeof LightweightCharts === 'undefined') return;
+
+            // Настройка графика
+            chart = LightweightCharts.createChart(container, {
+                layout: { 
+                    background: { color: '#131722' }, 
+                    textColor: '#d1d4dc' 
+                },
+                grid: { 
+                    vertLines: { color: '#2b2b43' }, 
+                    horzLines: { color: '#2b2b43' } 
+                },
+                width: container.clientWidth,
+                height: 400,
+                timeScale: { borderVisible: false, timeVisible: true }
+            });
+
+            candlestickSeries = chart.addCandlestickSeries({
+                upColor: '#26a69a', 
+                downColor: '#ef5350', 
+                borderVisible: false, 
+                wickUpColor: '#26a69a', 
+                wickDownColor: '#ef5350'
+            });
+
+            // Слушатель смены монеты
+            coinSelect.addEventListener('change', (e) => {
+                const target = e.target;
+                currentSymbol = target.value;
+                document.getElementById('symbol-name').innerText = "Loading...";
+                updateData().then(() => {
+                    chart.timeScale().fitContent();
+                });
+            });
+
+            // Первый запуск
+            await updateData();
+            chart.timeScale().fitContent();
+
+            // Интервал обновления
+            setInterval(updateData, 5000);
+
+            // Адаптивность
+            window.addEventListener('resize', () => {
+                chart.resize(container.clientWidth, 400);
+            });
+        }
+
         window.onload = () => {
             setTimeout(initApp, 500);
         };
