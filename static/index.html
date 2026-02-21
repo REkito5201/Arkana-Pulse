@@ -53,13 +53,15 @@
             <option value="BTCUSDT">BTC / USDT</option>
             <option value="ETHUSDT">ETH / USDT</option>
             <option value="SOLUSDT">SOL / USDT</option>
+            <option value="TONUSDT">TON / USDT</option>
             <option value="BNBUSDT">BNB / USDT</option>
         </select>
     </div>
 
     <div class="info">
-        <h2 id="symbol-name">BTCUSDT</h2>
+        <h2 id="symbol-name">BTC/USDT</h2>
         <div id="rsi-container">RSI: <span id="rsi-value">--</span></div>
+        <div id="price-container" style="font-size: 2rem; font-weight: bold; margin: 5px 0;"><span id="current-price">0.00</span>
     </div>
 
     <div id="chart-container"></div>
@@ -88,30 +90,40 @@
         async function updateData() {
             const rsiElement = document.getElementById('rsi-value');
             const symbolElement = document.getElementById('symbol-name');
+            const priceElement = document.getElementById('current-price');
 
             try {
                 // Используем обратные кавычки для вставки переменной currentSymbol
                 const response = await fetch(`/api/v1/candles/${currentSymbol}?v=${Math.random()}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
+                if (!response.ok) throw new Error(`Status: ${response.status}`);
                 const data = await response.json();
 
                 if (data.candles && data.candles.length > 0) {
-                    // Обновляем серию свечей
+                    // 1. Обновляем график
                     candlestickSeries.setData(data.candles);
+
+                    // 2. Логика живой цены
+                    const lastCandle = data.candles[data.candles.length -1];
+                    const currentPrice = lastCandle.close;
+
+                    // Форматирование цены
+                    priceElement.innerText = currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2});
+
+                    // Анимация цвета цены
+                    const prevPrice = parseFloat(priceElement.getAttribute('data-prev') || 0);
+                    if (currentPrice > prevPrice) priceElement.style.color = "#26a69a"; // Рост
+                    else if (currentPrice < prevPrice) priceElement.style.color = "#ef5350"; // Падение
+
+                    priceElement.setAttribute('data-prev', currentPrice);
                     
-                    // Обновляем текст RSI
+                    // 3. Обновляем RSI
                     const rsi = parseFloat(data.rsi);
                     rsiElement.innerText = rsi.toFixed(2);
                     
                     // Логика цвета RSI (70/30)
-                    if (rsi >= 70) {
-                        rsiElement.style.color = "#ef5350"; // Перекупленность
-                    } else if (rsi <= 30) {
-                        rsiElement.style.color = "#26a69a"; // Перепроданность
-                    } else {
-                        rsiElement.style.color = "#ffffff"; // Норма
-                    }
+                    if (rsi >= 70) rsiElement.style.color = "#ef5350"; // Перекупленность
+                    else if (rsi <= 30) rsiElement.style.color = "#26a69a"; // Перепроданность
+                    else rsiElement.style.color = "#ffffff"; // Норма
 
                     symbolElement.innerText = currentSymbol;
                 }
@@ -121,9 +133,7 @@
             }
         }
 
-        /**
-         * Инициализация приложения (аналог public async initApp(): Promise<void>)
-         */
+        // Инициализация приложения
         async function initApp() {
             const container = document.getElementById('chart-container');
             const coinSelect = document.getElementById('coin-select');
@@ -153,6 +163,26 @@
                 wickDownColor: '#ef5350'
             });
 
+            // Линия перекупленности (70)
+            candlestickSeries.createPriceLine({
+                price: 70,
+                color: 'rgba(239, 83, 80, 0.5)', // Полупрозрачный красный
+                lineWidth: 2,
+                lineStyle: 2, // Пунктирная линия
+                axisLabelVisible: true,
+                title: 'OVERBOUGHT 70',
+            });
+
+            // Линия уровня 30 (Перепроданность)
+            candlestickSeries.createPriceLine({
+                price: 30,
+                color: 'rgba(38, 166, 154, 0.5)', // Полупрозрачный зеленый
+                lineWidth: 2,
+                lineStyle: 2, // Пунктирная линия
+                axisLabelVisible: true,
+                title: 'OVERSOLD 30',
+            });
+
             // Слушатель смены монеты
             coinSelect.addEventListener('change', (e) => {
                 const target = e.target;
@@ -171,14 +201,10 @@
             setInterval(updateData, 5000);
 
             // Адаптивность
-            window.addEventListener('resize', () => {
-                chart.resize(container.clientWidth, 400);
-            });
+            window.addEventListener('resize', () => chart.resize(container.clientWidth, 400));
         }
 
-        window.onload = () => {
-            setTimeout(initApp, 500);
-        };
+        window.onload = () => setTimeout(initApp, 500);
     </script>
 </body>
 </html>
