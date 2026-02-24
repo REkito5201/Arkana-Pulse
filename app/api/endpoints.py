@@ -44,6 +44,7 @@ async def get_historical_candles(symbol: str):
     # Считаем RSI через Polars
     df = scanner.analyze_assets(raw_data)
     current_rsi = float(df["rsi"].tail(1).item()) # Берём последнее значение
+    rsi_list = df["rsi"].fill_null(50.0).to_list()
     
     # Форматируем данные специально для TradingView Lightweight Charts
     # Им нужны поля: time (в секундах или YYYY-MM-DD), open, high, low, close
@@ -59,5 +60,6 @@ async def get_historical_candles(symbol: str):
     
     return {
         "candles": formatted_candles,
-        "rsi": round(current_rsi, 2)
+        "rsi": round(current_rsi, 2),
+        "rsi_history": [round(float(x), 2) for x in rsi_list]
     }
