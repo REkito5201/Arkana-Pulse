@@ -6,225 +6,323 @@
     <title>Arkana Pulse</title>
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #131722; color: #ffffff; font-family: sans-serif; }
-        .controls { padding: 15px; text-align: center; background: #1e222d; border-bottom: 1px solid #3d3d5c; }
+        :root {
+            --bg-main: #131722;
+            --bg-accent: #1e222d;
+            --bg-input: #2b2b43;
+            --text-main: #ffffff;
+            --text-muted: #d1d4dc;
+            --color-up: #26a69a;
+            --color-down: #ef5350;
+            --color-rsi: #9c27b0;
+            --border-color: #3d3d5c;
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        }
+
+        .controls { 
+            padding: 15px; 
+            text-align: center; 
+            background: var(--bg-accent); 
+            border-bottom: 1px solid var(--border-color); 
+        }
         
-        /* === СТИЛИ СЕЛЕКТОРА И АНИМИРОВАННОЙ СТРЕЛКИ === */
         #coin-select { 
             appearance: none;
-            -webkit-appearance: none;
-            padding: 12px; 
+            padding: 12px 40px 12px 12px; 
             border-radius: 8px; 
-            background-color: #2b2b43;
-            color: #ffffff;
-            border: 1px solid #3d3d5c; 
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color); 
             font-size: 16px; 
-            width: 90%; 
+            width: 100%;
+            max-width: 400px;
             outline: none;
             cursor: pointer;
-
-            /* Встроенная SVG стрелка */
             background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4"><path fill="%23FFFFFF" d="M287 69.4a17.6 17.6 0 0 0-13-5.4H18.4c-5 0-9.3 1.8-12.9 5.4A17.6 17.6 0 0 0 0 82.2c0 5 1.8 9.3 5.4 12.9l128 127.9c3.6 3.6 7.8 5.4 12.8 5.4s9.2-1.8 12.8-5.4L287 95c3.5-3.5 5.4-7.8 5.4-12.8 0-5-1.9-9.2-5.5-12.8z"/></svg>');
             background-repeat: no-repeat;
-            background-position: right 12px top 50%;
+            background-position: right 12px center;
             background-size: 12px auto;
-            transition: background-image 0.3s ease;
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        /* Класс для перевернутой стрелки */
-        #coin-select.rotate-arrow {
-            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4" style="transform:rotate(180deg);transform-origin:center;"><path fill="%23FFFFFF" d="M287 69.4a17.6 17.6 0 0 0-13-5.4H18.4c-5 0-9.3 1.8-12.9 5.4A17.6 17.6 0 0 0 0 82.2c0 5 1.8 9.3 5.4 12.9l128 127.9c3.6 3.6 7.8 5.4 12.8 5.4s9.2-1.8 12.8-5.4L287 95c3.5-3.5 5.4-7.8 5.4-12.8 0-5-1.9-9.2-5.5-12.8z"/></svg>');
-        }
+        #coin-select:focus { border-color: var(--color-rsi); }
+        .rotate-arrow { transform: rotateX(0deg); } /* Логика вращения перенесена в JS через класс, если нужно */
 
-        #coin-select option { background-color: #1e222d; color: white; }
-
-        /* === СТИЛИ ИНФОБЛОКА === */
         .info { padding: 15px; text-align: center; }
-        #symbol-name { margin: 5px 0; font-size: 1.5rem; }
-        #rsi-container { font-size: 1.1rem; color: #d1d4dc; }
-        #price-container { font-size: 2rem; font-weight: bold; margin: 5px 0; }
+        #symbol-name { margin: 5px 0; font-size: 1.5rem; letter-spacing: 1px; }
+        #rsi-container { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 10px; }
+        #price-container { 
+            font-size: 2.2rem; 
+            font-weight: 700; 
+            margin: 5px 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 10px;
+            transition: color 0.3s ease;
+        }
+        .price-arrow { font-size: 0.7em; }
+        
         #chart-container { width: 100%; height: 500px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="controls">
-        <select id="coin-select">
+    <header class="controls">
+        <select id="coin-select" aria-label="Выберите торговую пару">
             <option value="BTCUSDT">BTC / USDT</option>
             <option value="ETHUSDT">ETH / USDT</option>
             <option value="SOLUSDT">SOL / USDT</option>
             <option value="TONUSDT">TON / USDT</option>
             <option value="BNBUSDT">BNB / USDT</option>
         </select>
-    </div>
+    </header>
 
-    <div class="info">
-        <h2 id="symbol-name">BTCUSDT</h2>
-        <div id="rsi-container">RSI: <span id="rsi-value">--</span></div>
-        <div id="price-container"><span id="current-price">0.00</span></div>
-    </div>
+    <main class="info">
+        <h2 id="symbol-name">---</h2>
+        <div id="rsi-container">RSI (14): <span id="rsi-value">--</span></div>
+        <div id="price-container">
+            <span id="current-price">0.00</span>
+            <span id="price-icon" class="price-arrow"></span>
+        </div>
+    </main>
 
     <div id="chart-container"></div>
 
     <script>
-        let currentSymbol = "BTCUSDT";
-        let candlestickSeries = null;
-        let chart = null;
-        let rsiSeries = null;
+        /**
+         * @typedef {Object} Candle
+         * @property {number} time
+         * @property {number} open
+         * @property {number} high
+         * @property {number} low
+         * @property {number} close
+         */
 
-        async function updateData() {
-            const rsiElement = document.getElementById('rsi-value');
-            const symbolElement = document.getElementById('symbol-name');
-            const priceElement = document.getElementById('current-price');
+        /**
+         * @typedef {Object} ApiResponse
+         * @property {Candle[]} candles
+         * @property {number[]} rsi_history
+         * @property {number} rsi
+         */
 
-            try {
-                const response = await fetch(`/api/v1/candles/${currentSymbol}?v=${Math.random()}`);
-                if (!response.ok) throw new Error(`Status: ${response.status}`);
-                const data = await response.json();
-
-                if (data.candles && data.candles.length > 0) {
-                    
-                    // 1. Обновляем свечи
-                    candlestickSeries.setData(data.candles);
-
-                    // 2. Обновляем линию RSI
-                    if (data.rsi_history) {
-                        const rsiData = data.candles.map((candle, index) => ({
-                            time: candle.time,
-                            value: data.rsi_history[index] !== undefined ? data.rsi_history[index] : 50 
-                        }));
-                        rsiSeries.setData(rsiData);
+        class ArkanaPulseApp {
+            constructor() {
+                // Конфигурация (Constants)
+                this.CONFIG = {
+                    UPDATE_INTERVAL: 5000,
+                    COLORS: {
+                        up: '#26a69a',
+                        down: '#ef5350',
+                        rsi: '#9c27b0',
+                        bg: '#131722',
+                        grid: '#2b2b43',
+                        text: '#d1d4dc'
                     }
+                };
 
-                    // 3. Обновляем цену и цвет
-                    const lastCandle = data.candles[data.candles.length -1];
-                    const currentPrice = lastCandle.close;
-                    const formatter = new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 2,
+                // Состояние приложения
+                this.state = {
+                    currentSymbol: "BTCUSDT",
+                    prevPrice: 0,
+                    isFirstLoad: true
+                };
+
+                // Ссылки на DOM-элементы
+                this.elements = {
+                    select: document.getElementById('coin-select'),
+                    symbol: document.getElementById('symbol-name'),
+                    rsi: document.getElementById('rsi-value'),
+                    price: document.getElementById('current-price'),
+                    priceIcon: document.getElementById('price-icon'),
+                    chartContainer: document.getElementById('chart-container')
+                };
+
+                this.chart = null;
+                this.candleSeries = null;
+                this.rsiSeries = null;
+                
+                this.formatter = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                });
+            }
+
+            /**
+             * Инициализация приложения
+             */
+            async init() {
+                this.initChart();
+                this.setupEventListeners();
+                await this.updateData();
+                this.chart.timeScale().fitContent();
+                
+                // Запуск цикла обновления
+                setInterval(() => this.updateData(), this.CONFIG.UPDATE_INTERVAL);
+            }
+
+            /**
+             * Инициализация графика Lightweight Charts
+             */
+            initChart() {
+                this.chart = LightweightCharts.createChart(this.elements.chartContainer, {
+                    layout: { 
+                        background: { color: this.CONFIG.COLORS.bg }, 
+                        textColor: this.CONFIG.COLORS.text 
+                    },
+                    grid: { 
+                        vertLines: { color: this.CONFIG.COLORS.grid }, 
+                        horzLines: { color: this.CONFIG.COLORS.grid } 
+                    },
+                    width: this.elements.chartContainer.clientWidth,
+                    height: 500,
+                    timeScale: { borderVisible: false, timeVisible: true },
+                    rightPriceScale: { 
+                        visible: true, 
+                        localization: { priceFormatter: p => `$${p.toFixed(2)}` } 
+                    },
+                });
+
+                // Серия свечей
+                this.candleSeries = this.chart.addCandlestickSeries({
+                    upColor: this.CONFIG.COLORS.up,
+                    downColor: this.CONFIG.COLORS.down,
+                    borderVisible: false,
+                    wickUpColor: this.CONFIG.COLORS.up,
+                    wickDownColor: this.CONFIG.COLORS.down,
+                });
+
+                // Настройка отступов для основной цены (верхние 65%)
+                this.chart.priceScale('right').applyOptions({
+                    scaleMargins: { top: 0.05, bottom: 0.4 }
+                });
+
+                // Серия RSI (на левой шкале)
+                this.rsiSeries = this.chart.addLineSeries({
+                    color: this.CONFIG.COLORS.rsi,
+                    lineWidth: 2,
+                    priceScaleId: 'left',
+                });
+
+                // Настройка шкалы RSI (нижние 25%)
+                this.chart.priceScale('left').applyOptions({
+                    autoScale: true,
+                    scaleMargins: { top: 0.75, bottom: 0.05 }
+                });
+
+                this.addRsiLevels();
+            }
+
+            addRsiLevels() {
+                [70, 30].forEach(level => {
+                    this.rsiSeries.createPriceLine({
+                        price: level,
+                        color: level === 70 ? 'rgba(239, 83, 80, 0.4)' : 'rgba(38, 166, 154, 0.4)',
+                        lineWidth: 1,
+                        lineStyle: 2,
+                        axisLabelVisible: true,
+                        title: level.toString()
                     });
+                });
+            }
 
-                    const prevPrice = parseFloat(priceElement.getAttribute('data-prev') || 0);
-                    priceElement.setAttribute('data-prev', currentPrice);
-
-                    // Форматируем саму цену
-                    const formattedPrice = formatter.format(currentPrice);
-
-                    const arrowStyle = 'font-size: 0.6em; margin-left: 8px; display: flex; align-items: center;';
-
-                    if (currentPrice > prevPrice) {
-                        priceElement.style.color = "#26a69a";
-                        priceElement.innerHTML = `
-                            <div style="display: inline-flex; align-items: center;">
-                                ${formattedPrice} 
-                                <span style="${arrowStyle}">▲</span>
-                            </div>`;
-                    } else if (currentPrice < prevPrice) {
-                        priceElement.style.color = "#ef5350";
-                        priceElement.innerHTML = `
-                            <div style="display: inline-flex; align-items: center;">
-                                ${formattedPrice} 
-                                <span style="${arrowStyle}">▼</span>
-                            </div>`;
-                    } else {
-                        priceElement.innerHTML = formattedPrice;
-                    }
-
-                    // Обновляем заголовок вкладки
-                    document.title = `${formatter.format(currentPrice)} | ${currentSymbol}`;
+            /**
+             * Основной метод получения данных
+             */
+            async updateData() {
+                try {
+                    const response = await fetch(`/api/v1/candles/${this.state.currentSymbol}?cache_bust=${Date.now()}`);
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
                     
-                    // 4. Обновляем текст RSI
-                    const rsi = parseFloat(data.rsi);
-                    rsiElement.innerText = rsi.toFixed(2);
-                    if (rsi >= 70) rsiElement.style.color = "#ef5350"; 
-                    else if (rsi <= 30) rsiElement.style.color = "#26a69a"; 
-                    else rsiElement.style.color = "#ffffff"; 
+                    /** @type {ApiResponse} */
+                    const data = await response.json();
 
-                    symbolElement.innerText = currentSymbol;
+                    if (data?.candles?.length > 0) {
+                        this.renderUI(data);
+                    }
+                } catch (error) {
+                    console.error("[App Error]:", error);
                 }
-            } catch (error) {
-                console.error("Update error:", error);
+            }
+
+            /**
+             * Отрисовка данных в UI и на графике
+             * @param {ApiResponse} data 
+             */
+            renderUI(data) {
+                const lastCandle = data.candles[data.candles.length - 1];
+                const currentPrice = lastCandle.close;
+
+                // 1. Обновление графиков
+                this.candleSeries.setData(data.candles);
+                
+                if (data.rsi_history) {
+                    const rsiData = data.candles.map((c, i) => ({
+                        time: c.time,
+                        value: data.rsi_history[i] ?? 50
+                    }));
+                    this.rsiSeries.setData(rsiData);
+                }
+
+                // 2. Обновление текстовых данных
+                this.updatePriceDisplay(currentPrice);
+                this.updateRsiDisplay(data.rsi);
+                
+                this.elements.symbol.textContent = this.state.currentSymbol;
+                document.title = `${this.formatter.format(currentPrice)} | ${this.state.currentSymbol}`;
+
+                this.state.prevPrice = currentPrice;
+            }
+
+            updatePriceDisplay(price) {
+                this.elements.price.textContent = this.formatter.format(price);
+                
+                if (this.state.prevPrice !== 0) {
+                    const isUp = price > this.state.prevPrice;
+                    const isDown = price < this.state.prevPrice;
+                    
+                    this.elements.price.style.color = isUp ? this.CONFIG.COLORS.up : isDown ? this.CONFIG.COLORS.down : '#fff';
+                    this.elements.priceIcon.textContent = isUp ? '▲' : isDown ? '▼' : '';
+                    this.elements.priceIcon.style.color = this.elements.price.style.color;
+                }
+            }
+
+            updateRsiDisplay(rsiValue) {
+                const rsi = parseFloat(rsiValue);
+                this.elements.rsi.textContent = rsi.toFixed(2);
+                
+                if (rsi >= 70) this.elements.rsi.style.color = this.CONFIG.COLORS.down;
+                else if (rsi <= 30) this.elements.rsi.style.color = this.CONFIG.COLORS.up;
+                else this.elements.rsi.style.color = '#fff';
+            }
+
+            setupEventListeners() {
+                this.elements.select.addEventListener('change', (e) => {
+                    this.state.currentSymbol = e.target.value;
+                    this.elements.symbol.textContent = "Loading...";
+                    this.updateData().then(() => this.chart.timeScale().fitContent());
+                    this.elements.select.blur();
+                });
+
+                window.addEventListener('resize', () => {
+                    this.chart.resize(this.elements.chartContainer.clientWidth, 500);
+                });
             }
         }
 
-        async function initApp() {
-            const container = document.getElementById('chart-container');
-            const coinSelect = document.getElementById('coin-select');
-
-            // === 1. СОЗДАЕМ ГРАФИК ===
-            chart = LightweightCharts.createChart(container, {
-                layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
-                grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
-                width: container.clientWidth,
-                height: 500, // Общая высота
-                timeScale: { borderVisible: false, timeVisible: true },
-                rightPriceScale: { visible: true, localization: { priceFormatter: price => `$${price.toFixed(2)}` } },
-            });
-
-            // Свечи (используют стандартную правую шкалу)
-            candlestickSeries = chart.addCandlestickSeries({
-                upColor: '#26a69a', downColor: '#ef5350', 
-                borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
-            });
-
-            // === 2. РАЗДЕЛЯЕМ ПАНЕЛИ (МАГИЯ ЗДЕСЬ) ===
-            
-            // Поджимаем свечи снизу (они займут верхние 65% экрана)
-            chart.priceScale('right').applyOptions({
-                scaleMargins: {
-                    top: 0.05,    
-                    bottom: 0.4, 
-                },
-            });
-
-            rsiSeries = chart.addLineSeries({
-                color: '#9c27b0', 
-                lineWidth: 2,
-                priceScaleId: 'left', // ЭТО КЛЮЧЕВОЙ МОМЕНТ
-            });
-
-            // Поджимаем RSI сверху (он займет нижние 25% экрана)
-            chart.priceScale('left').applyOptions({
-                autoScale: true,
-                minValue: 0,
-                maxValue: 100,
-                scaleMargins: { 
-                    top: 0.75, 
-                    bottom: 0.05,
-                },
-            });
-
-            // Уровни 70/30 для RSI
-            rsiSeries.createPriceLine({
-                price: 70, color: 'rgba(239, 83, 80, 0.5)', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: '70'
-            });
-            rsiSeries.createPriceLine({
-                price: 30, color: 'rgba(38, 166, 154, 0.5)', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: '30'
-            }); 
-
-            // === 4. ОБРАБОТЧИКИ СОБЫТИЙ (СЕЛЕКТОР) ===
-            
-            coinSelect.addEventListener('change', (e) => {
-                currentSymbol = e.target.value;
-                coinSelect.classList.remove('rotate-arrow'); // Возвращаем стрелку
-                document.getElementById('symbol-name').innerText = "Loading...";
-                updateData().then(() => chart.timeScale().fitContent());
-                coinSelect.blur();
-            });
-
-            // Анимация стрелки
-            coinSelect.addEventListener('focus', () => coinSelect.classList.add('rotate-arrow'));
-            coinSelect.addEventListener('blur', () => coinSelect.classList.remove('rotate-arrow'));
-
-            // === 5. ЗАПУСК ===
-            await updateData();
-            chart.timeScale().fitContent();
-            setInterval(updateData, 5000);
-            window.addEventListener('resize', () => chart.resize(container.clientWidth, 500));
-        }
-
-        window.onload = () => setTimeout(initApp, 500);
+        // Запуск
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new ArkanaPulseApp();
+            app.init();
+        });
     </script>
 </body>
 </html>
