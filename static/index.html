@@ -121,6 +121,11 @@
             border-radius: 999px;
         }
 
+        .legend-value {
+            font-variant-numeric: tabular-nums;
+            opacity: 0.9;
+        }
+
         #price-chart,
         #rsi-chart,
         #macd-chart {
@@ -137,6 +142,108 @@
 
         #macd-chart {
             height: 160px;
+        }
+
+        .info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .info-badge-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .info-badge-label {
+            opacity: 0.9;
+        }
+
+        .def-icon {
+            margin-left: 6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .def-icon:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+        }
+
+        .definition-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+
+        .definition-modal--visible {
+            display: flex;
+        }
+
+        .definition-modal__backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .definition-modal__content {
+            position: relative;
+            max-width: 420px;
+            width: 90%;
+            background: #151925;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 18px 18px 14px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            z-index: 1;
+        }
+
+        .definition-modal__title {
+            margin: 0 0 8px;
+            font-size: 1rem;
+        }
+
+        .definition-modal__body {
+            margin: 0 0 12px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .definition-modal__actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .definition-modal__button {
+            border: none;
+            border-radius: 999px;
+            padding: 6px 14px;
+            background: #2962ff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .definition-modal__button:hover {
+            background: #4475ff;
         }
     </style>
 </head>
@@ -159,12 +266,23 @@
             <span id="current-price">0.00</span>
             <span id="price-icon" class="price-arrow"></span>
         </div>
+        <div class="info-badge">
+            <span class="info-badge-label">Fear &amp; Greed:</span>
+            <span class="info-badge-pill">
+                <span id="fg-value">--</span>
+                <span id="fg-label"></span>
+            </span>
+        </div>
     </main>
 
     <div class="charts-wrapper">
         <section class="chart-panel">
             <header class="chart-panel-header">
-                <span class="chart-panel-title">Price · Bollinger Bands</span>
+                <span class="chart-panel-title">
+                    Price · Bollinger Bands / Ichimoku
+                    <button class="def-icon" type="button" data-def="bb">?</button>
+                    <button class="def-icon" type="button" data-def="ichimoku">?</button>
+                </span>
                 <div class="chart-legend">
                     <span class="legend-item" data-series="candle">
                         <span class="legend-dot" style="background: #26a69a;"></span>
@@ -196,7 +314,10 @@
 
         <section class="chart-panel">
             <header class="chart-panel-header">
-                <span class="chart-panel-title">RSI · Momentum</span>
+                <span class="chart-panel-title">
+                    RSI · Momentum
+                    <button class="def-icon" type="button" data-def="rsi">?</button>
+                </span>
                 <div class="chart-legend">
                     <span class="legend-item" data-series="rsi">
                         <span class="legend-dot" style="background: #9c27b0;"></span>
@@ -218,7 +339,10 @@
 
         <section class="chart-panel">
             <header class="chart-panel-header">
-                <span class="chart-panel-title">MACD · Trend Strength</span>
+                <span class="chart-panel-title">
+                    MACD · Trend Strength
+                    <button class="def-icon" type="button" data-def="macd">?</button>
+                </span>
                 <div class="chart-legend">
                     <span class="legend-item" data-series="macd">
                         <span class="legend-dot" style="background: #2962FF;"></span>
@@ -246,7 +370,43 @@
         </section>
     </div>
 
+    <div id="definition-modal" class="definition-modal">
+        <div class="definition-modal__backdrop" data-def-close="1"></div>
+        <div class="definition-modal__content">
+            <h3 id="definition-title" class="definition-modal__title"></h3>
+            <p id="definition-body" class="definition-modal__body"></p>
+            <div class="definition-modal__actions">
+                <button id="definition-close" class="definition-modal__button" type="button">
+                    Понятно
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const DEFINITIONS = {
+            rsi: {
+                title: "RSI (Relative Strength Index)",
+                body: "Осциллятор от 0 до 100. Значения выше 70 часто означают перекупленность, ниже 30 — перепроданность.",
+            },
+            bb: {
+                title: "Bollinger Bands",
+                body: "Полосы вокруг средней цены. Верхняя и нижняя границы помогают видеть статистически высокие и низкие значения цены.",
+            },
+            macd: {
+                title: "MACD",
+                body: "Разница между двумя экспоненциальными средними и её сглаживание. Линии и гистограмма показывают силу тренда и возможный разворот.",
+            },
+            ichimoku: {
+                title: "Ichimoku Cloud",
+                body: "Комплексный индикатор тренда. Облако Span A/B задаёт зоны поддержки/сопротивления, а линии Tenkan/Kijun отображают баланс цены.",
+            },
+            fear_greed: {
+                title: "Fear & Greed Index",
+                body: "Индекс настроений рынка от 0 (страх) до 100 (жадность). Экстремальные значения часто совпадают с разворотами.",
+            },
+        };
+
         /**
          * @typedef {Object} Candle
          * @property {number} time
@@ -275,6 +435,11 @@
          * @property {number[]} macd_line
          * @property {number[]} macd_signal
          * @property {number[]} macd_hist
+         * @property {number[]} [ichi_conversion]
+         * @property {number[]} [ichi_base]
+         * @property {number[]} [ichi_span_a]
+         * @property {number[]} [ichi_span_b]
+         * @property {{ value: number, classification: string, timestamp: number } | null} [fear_greed]
          * @property {SummaryPayload} summary
          */
 
@@ -294,7 +459,11 @@
                         bb: 'rgba(33, 150, 243, 0.2)',
                         bbLine: '#2196F3',
                         macd: '#2962FF',
-                        macdSignal: '#FF6D00'
+                        macdSignal: '#FF6D00',
+                        ichiConversion: '#FF9800',
+                        ichiBase: '#FFEB3B',
+                        ichiSpanA: 'rgba(76, 175, 80, 0.7)',
+                        ichiSpanB: 'rgba(244, 67, 54, 0.7)',
                     }
                 };
 
@@ -315,6 +484,8 @@
                     price: document.getElementById('current-price'),
                     priceIcon: document.getElementById('price-icon'),
                     chartContainer: document.getElementById('chart-container'),
+                    fearGreedValue: document.getElementById('fg-value'),
+                    fearGreedLabel: document.getElementById('fg-label'),
                     legends: {
                         bbUpper: document.getElementById('legend-bb-upper'),
                         bbLower: document.getElementById('legend-bb-lower'),
@@ -341,6 +512,10 @@
                 this.macdSeries = null;
                 this.macdSignalSeries = null;
                 this.macdHistSeries = null;
+                this.ichiConversion = null;
+                this.ichiBase = null;
+                this.ichiSpanA = null;
+                this.ichiSpanB = null;
                 
                 this.formatter = new Intl.NumberFormat('en-US', {
                     style: 'currency',
@@ -355,6 +530,7 @@
             async init() {
                 this.initCharts();
                 this.setupEventListeners();
+                this.setupDefinitionsUI();
                 await this.updateData();
                 if (this.priceChart) {
                     this.priceChart.timeScale().fitContent();
@@ -405,6 +581,31 @@
                 this.bbUpper = this.priceChart.addLineSeries({ ...bbOptions, color: this.CONFIG.COLORS.bbLine });
                 this.bbMiddle = this.priceChart.addLineSeries({ ...bbOptions, color: 'rgba(255, 255, 255, 0.6)', lineStyle: 2 });
                 this.bbLower = this.priceChart.addLineSeries({ ...bbOptions, color: this.CONFIG.COLORS.bbLine });
+
+                // Ichimoku lines & cloud
+                this.ichiConversion = this.priceChart.addLineSeries({
+                    color: this.CONFIG.COLORS.ichiConversion,
+                    lineWidth: 1,
+                });
+
+                this.ichiBase = this.priceChart.addLineSeries({
+                    color: this.CONFIG.COLORS.ichiBase,
+                    lineWidth: 1,
+                });
+
+                this.ichiSpanA = this.priceChart.addAreaSeries({
+                    topColor: 'rgba(76, 175, 80, 0.25)',
+                    bottomColor: 'rgba(76, 175, 80, 0.0)',
+                    lineColor: this.CONFIG.COLORS.ichiSpanA,
+                    lineWidth: 1,
+                });
+
+                this.ichiSpanB = this.priceChart.addAreaSeries({
+                    topColor: 'rgba(244, 67, 54, 0.25)',
+                    bottomColor: 'rgba(244, 67, 54, 0.0)',
+                    lineColor: this.CONFIG.COLORS.ichiSpanB,
+                    lineWidth: 1,
+                });
 
                 // --- RSI ---
                 this.rsiChart = LightweightCharts.createChart(rsiContainer, {
@@ -521,6 +722,8 @@
                     macd: [this.macdSeries],
                     'macd-signal': [this.macdSignalSeries],
                     'macd-hist': [this.macdHistSeries],
+                    'ichi-lines': [this.ichiConversion, this.ichiBase],
+                    'ichi-cloud': [this.ichiSpanA, this.ichiSpanB],
                 };
 
                 const baseLineWidth = {
@@ -529,6 +732,7 @@
                     rsi: 2.0,
                     macd: 1.0,
                     'macd-signal': 1.0,
+                    'ichi-lines': 1.0,
                 };
 
                 const highlight = (key) => {
@@ -569,6 +773,8 @@
                 const macd = get(data.macd_line);
                 const macdSignal = get(data.macd_signal);
                 const macdHist = get(data.macd_hist);
+                const ichiConv = get(data.ichi_conversion);
+                const ichiBase = get(data.ichi_base);
 
                 const setLegend = (el, value, digits = 2) => {
                     if (!el) return;
@@ -660,6 +866,28 @@
                     this.bbMiddle.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_middle[i] })));
                     this.bbLower.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_lower[i] })));
                 }
+
+                // Обновление Ichimoku
+                if (this.ichiConversion && Array.isArray(data.ichi_conversion)) {
+                    this.ichiConversion.setData(
+                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_conversion[i] }))
+                    );
+                }
+                if (this.ichiBase && Array.isArray(data.ichi_base)) {
+                    this.ichiBase.setData(
+                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_base[i] }))
+                    );
+                }
+                if (this.ichiSpanA && Array.isArray(data.ichi_span_a)) {
+                    this.ichiSpanA.setData(
+                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_span_a[i] }))
+                    );
+                }
+                if (this.ichiSpanB && Array.isArray(data.ichi_span_b)) {
+                    this.ichiSpanB.setData(
+                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_span_b[i] }))
+                    );
+                }
                 
                 // Обновление RSI
                 if (this.rsiSeries && Array.isArray(data.rsi_history)) {
@@ -687,6 +915,7 @@
                 // 2. Обновление текстовых данных
                 this.updatePriceDisplay(currentPrice);
                 this.updateRsiDisplay(data.rsi ?? (data.summary && data.summary.rsi));
+                 this.updateFearGreed(data.fear_greed || null);
                 
                 this.elements.symbol.textContent = this.state.currentSymbol;
                 document.title = `${this.formatter.format(currentPrice)} | ${this.state.currentSymbol}`;
@@ -730,6 +959,32 @@
                 }
             }
 
+            updateFearGreed(payload) {
+                const valueEl = this.elements.fearGreedValue;
+                const labelEl = this.elements.fearGreedLabel;
+                if (!valueEl || !labelEl) return;
+
+                if (!payload || typeof payload.value !== 'number') {
+                    valueEl.textContent = '--';
+                    labelEl.textContent = '';
+                    valueEl.style.color = '';
+                    labelEl.style.color = '';
+                    return;
+                }
+
+                const value = payload.value;
+                const classification = payload.classification || '';
+                valueEl.textContent = String(value);
+                labelEl.textContent = classification ? `· ${classification}` : '';
+
+                let color = '#d1d4dc';
+                if (value <= 25) color = this.CONFIG.COLORS.down;
+                else if (value >= 75) color = this.CONFIG.COLORS.up;
+
+                valueEl.style.color = color;
+                labelEl.style.color = color;
+            }
+
             setupEventListeners() {
                 this.elements.select.addEventListener('change', (e) => {
                     this.state.currentSymbol = e.target.value;
@@ -756,6 +1011,43 @@
                         this.macdChart.resize(macdContainer.clientWidth, macdContainer.clientHeight);
                     }
                 });
+            }
+
+            setupDefinitionsUI() {
+                const modal = document.getElementById('definition-modal');
+                const titleEl = document.getElementById('definition-title');
+                const bodyEl = document.getElementById('definition-body');
+                const closeBtn = document.getElementById('definition-close');
+
+                if (!modal || !titleEl || !bodyEl || !closeBtn) return;
+
+                const open = (key) => {
+                    const def = DEFINITIONS[key];
+                    if (!def) return;
+                    titleEl.textContent = def.title;
+                    bodyEl.textContent = def.body;
+                    modal.classList.add('definition-modal--visible');
+                };
+
+                const close = () => {
+                    modal.classList.remove('definition-modal--visible');
+                };
+
+                document.querySelectorAll('.def-icon[data-def]').forEach((el) => {
+                    const key = el.getAttribute('data-def');
+                    el.addEventListener('click', () => {
+                        if (key) open(key);
+                    });
+                });
+
+                modal.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (target && target.getAttribute && target.getAttribute('data-def-close')) {
+                        close();
+                    }
+                });
+
+                closeBtn.addEventListener('click', () => close());
             }
         }
 

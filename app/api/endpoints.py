@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
 from app.engine.collectors import ExchangeCollector
+from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
 
 router = APIRouter()
@@ -80,6 +81,27 @@ async def get_historical_candles(symbol: str) -> dict[str, Any]:
     macd_signal = format_indicator_series(df["macd_signal"].to_list(), precision=4)
     macd_hist = format_indicator_series(df["macd_hist"].to_list(), precision=4)
 
+    ichi_conversion = (
+        format_indicator_series(df["ichi_conversion"].to_list())
+        if "ichi_conversion" in df.columns
+        else []
+    )
+    ichi_base = (
+        format_indicator_series(df["ichi_base"].to_list())
+        if "ichi_base" in df.columns
+        else []
+    )
+    ichi_span_a = (
+        format_indicator_series(df["ichi_span_a"].to_list())
+        if "ichi_span_a" in df.columns
+        else []
+    )
+    ichi_span_b = (
+        format_indicator_series(df["ichi_span_b"].to_list())
+        if "ichi_span_b" in df.columns
+        else []
+    )
+
     # Текущие значения для кэша и сигналов
     current_rsi = rsi_series[-1] if rsi_series else 50.0
     closes = df["close"].to_list()
@@ -102,6 +124,7 @@ async def get_historical_candles(symbol: str) -> dict[str, Any]:
     ]
 
     summary = scanner.get_signal(df)
+    fear_greed = await FearGreedService.get_latest()
 
     return {
         "symbol": symbol,
@@ -115,6 +138,10 @@ async def get_historical_candles(symbol: str) -> dict[str, Any]:
         "macd_line": macd_line,
         "macd_signal": macd_signal,
         "macd_hist": macd_hist,
+        "ichi_conversion": ichi_conversion,
+        "ichi_base": ichi_base,
+        "ichi_span_a": ichi_span_a,
+        "ichi_span_b": ichi_span_b,
         # Вложенная структура для возможного дальнейшего использования
         "indicators": {
             "rsi": rsi_series,
@@ -129,7 +156,14 @@ async def get_historical_candles(symbol: str) -> dict[str, Any]:
                 "hist": macd_hist,
             },
         },
+        "ichimoku": {
+            "conversion": ichi_conversion,
+            "base": ichi_base,
+            "span_a": ichi_span_a,
+            "span_b": ichi_span_b,
+        },
         "summary": summary,
+        "fear_greed": fear_greed,
     }
 
 @router.get("/signal/{symbol}")
