@@ -166,21 +166,28 @@
             <header class="chart-panel-header">
                 <span class="chart-panel-title">Price · Bollinger Bands</span>
                 <div class="chart-legend">
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="candle">
                         <span class="legend-dot" style="background: #26a69a;"></span>
                         <span>Candle ↑</span>
                     </span>
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="candle">
                         <span class="legend-dot" style="background: #ef5350;"></span>
                         <span>Candle ↓</span>
                     </span>
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="bb">
                         <span class="legend-dot" style="background: #2196F3;"></span>
-                        <span>BB Upper/Lower</span>
+                        <span>BB Upper</span>
+                        <span id="legend-bb-upper" class="legend-value">--</span>
                     </span>
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="bb">
+                        <span class="legend-dot" style="background: #2196F3;"></span>
+                        <span>BB Lower</span>
+                        <span id="legend-bb-lower" class="legend-value">--</span>
+                    </span>
+                    <span class="legend-item" data-series="bb">
                         <span class="legend-dot" style="background: rgba(255,255,255,0.6);"></span>
                         <span>BB Basis</span>
+                        <span id="legend-bb-basis" class="legend-value">--</span>
                     </span>
                 </div>
             </header>
@@ -191,9 +198,10 @@
             <header class="chart-panel-header">
                 <span class="chart-panel-title">RSI · Momentum</span>
                 <div class="chart-legend">
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="rsi">
                         <span class="legend-dot" style="background: #9c27b0;"></span>
                         <span>RSI (14)</span>
+                        <span id="legend-rsi" class="legend-value">--</span>
                     </span>
                     <span class="legend-item">
                         <span class="legend-dot" style="background: rgba(239,83,80,0.7);"></span>
@@ -212,21 +220,25 @@
             <header class="chart-panel-header">
                 <span class="chart-panel-title">MACD · Trend Strength</span>
                 <div class="chart-legend">
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="macd">
                         <span class="legend-dot" style="background: #2962FF;"></span>
                         <span>MACD</span>
+                        <span id="legend-macd" class="legend-value">--</span>
                     </span>
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="macd-signal">
                         <span class="legend-dot" style="background: #FF6D00;"></span>
                         <span>Signal</span>
+                        <span id="legend-macd-signal" class="legend-value">--</span>
                     </span>
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="macd-hist">
                         <span class="legend-dot" style="background: #26a69a;"></span>
                         <span>Hist ↑</span>
+                        <span id="legend-macd-hist-pos" class="legend-value">--</span>
                     </span>
-                    <span class="legend-item">
+                    <span class="legend-item" data-series="macd-hist">
                         <span class="legend-dot" style="background: #ef5350;"></span>
                         <span>Hist ↓</span>
+                        <span id="legend-macd-hist-neg" class="legend-value">--</span>
                     </span>
                 </div>
             </header>
@@ -290,7 +302,9 @@
                 this.state = {
                     currentSymbol: "BTCUSDT",
                     prevPrice: 0,
-                    isFirstLoad: true
+                    isFirstLoad: true,
+                    lastData: null,
+                    lastIndex: null,
                 };
 
                 // Ссылки на DOM-элементы
@@ -300,7 +314,17 @@
                     rsi: document.getElementById('rsi-value'),
                     price: document.getElementById('current-price'),
                     priceIcon: document.getElementById('price-icon'),
-                    chartContainer: document.getElementById('chart-container')
+                    chartContainer: document.getElementById('chart-container'),
+                    legends: {
+                        bbUpper: document.getElementById('legend-bb-upper'),
+                        bbLower: document.getElementById('legend-bb-lower'),
+                        bbBasis: document.getElementById('legend-bb-basis'),
+                        rsi: document.getElementById('legend-rsi'),
+                        macd: document.getElementById('legend-macd'),
+                        macdSignal: document.getElementById('legend-macd-signal'),
+                        macdHistPos: document.getElementById('legend-macd-hist-pos'),
+                        macdHistNeg: document.getElementById('legend-macd-hist-neg'),
+                    }
                 };
 
                 // Чарты и серии
@@ -450,6 +474,8 @@
                 this.macdHistSeries = this.macdChart.addHistogramSeries({});
 
                 this.setupChartsSync();
+                this.setupHighlightInteractions();
+                this.attachCrosshairHandler();
             }
 
             addRsiLevels() {
@@ -485,6 +511,114 @@
             }
 
             /**
+             * Подсветка серий при наведении на легенду
+             */
+            setupHighlightInteractions() {
+                const seriesMap = {
+                    candle: [this.candleSeries],
+                    bb: [this.bbUpper, this.bbMiddle, this.bbLower],
+                    rsi: [this.rsiSeries],
+                    macd: [this.macdSeries],
+                    'macd-signal': [this.macdSignalSeries],
+                    'macd-hist': [this.macdHistSeries],
+                };
+
+                const baseLineWidth = {
+                    candle: 1.0,
+                    bb: 1.0,
+                    rsi: 2.0,
+                    macd: 1.0,
+                    'macd-signal': 1.0,
+                };
+
+                const highlight = (key) => {
+                    Object.entries(seriesMap).forEach(([mapKey, seriesList]) => {
+                        seriesList.forEach((series) => {
+                            if (!series) return;
+                            if (key && mapKey === key) {
+                                series.applyOptions({ lineWidth: 3 });
+                            } else if (mapKey in baseLineWidth) {
+                                series.applyOptions({ lineWidth: baseLineWidth[mapKey] });
+                            }
+                        });
+                    });
+                };
+
+                document.querySelectorAll('.legend-item[data-series]').forEach((el) => {
+                    const key = el.getAttribute('data-series');
+                    el.addEventListener('mouseenter', () => highlight(key));
+                    el.addEventListener('mouseleave', () => highlight(null));
+                });
+            }
+
+            /**
+             * Обновление чисел в легенде по индексу свечи
+             */
+            updateLegendsForIndex(data, index) {
+                if (!data || index == null || index < 0 || index >= data.candles.length) {
+                    return;
+                }
+
+                const price = data.candles[index].close;
+                const get = (arr) => (Array.isArray(arr) && arr[index] != null ? Number(arr[index]) : null);
+
+                const bbUpper = get(data.bb_upper);
+                const bbLower = get(data.bb_lower);
+                const bbBasis = get(data.bb_middle);
+                const rsi = get(data.rsi_history);
+                const macd = get(data.macd_line);
+                const macdSignal = get(data.macd_signal);
+                const macdHist = get(data.macd_hist);
+
+                const setLegend = (el, value, digits = 2) => {
+                    if (!el) return;
+                    if (value == null || !Number.isFinite(value)) {
+                        el.textContent = '--';
+                    } else {
+                        el.textContent = value.toFixed(digits);
+                    }
+                };
+
+                setLegend(this.elements.legends.bbUpper, bbUpper);
+                setLegend(this.elements.legends.bbLower, bbLower);
+                setLegend(this.elements.legends.bbBasis, bbBasis);
+                setLegend(this.elements.legends.rsi, rsi);
+                setLegend(this.elements.legends.macd, macd, 4);
+                setLegend(this.elements.legends.macdSignal, macdSignal, 4);
+
+                if (this.elements.legends.macdHistPos) {
+                    const val = macdHist != null && macdHist > 0 ? macdHist : null;
+                    setLegend(this.elements.legends.macdHistPos, val, 4);
+                }
+                if (this.elements.legends.macdHistNeg) {
+                    const val = macdHist != null && macdHist < 0 ? macdHist : null;
+                    setLegend(this.elements.legends.macdHistNeg, val, 4);
+                }
+            }
+
+            /**
+             * Подписка на движение кроссхайра на ценовом чарте
+             */
+            attachCrosshairHandler() {
+                if (!this.priceChart) return;
+
+                this.priceChart.subscribeCrosshairMove((param) => {
+                    const data = this.state.lastData;
+                    if (!data || !param?.time) {
+                        return;
+                    }
+
+                    const time = Number(param.time);
+                    const candles = data.candles || [];
+                    const idx = candles.findIndex((c) => c.time === time);
+                    if (idx === -1) return;
+
+                    this.state.lastIndex = idx;
+                    this.updateLegendsForIndex(data, idx);
+                });
+            }
+
+            /**
              * Основной метод получения данных
              */
             async updateData() {
@@ -510,6 +644,9 @@
             renderUI(data) {
                 const lastCandle = data.candles[data.candles.length - 1];
                 const currentPrice = lastCandle.close;
+
+                this.state.lastData = data;
+                this.state.lastIndex = data.candles.length - 1;
 
                 // 1. Обновление графиков
                 if (this.candleSeries) {
@@ -555,6 +692,9 @@
                 document.title = `${this.formatter.format(currentPrice)} | ${this.state.currentSymbol}`;
 
                 this.state.prevPrice = currentPrice;
+
+                // 3. Обновление легенд (по последней свече, если кроссхайр не активен)
+                this.updateLegendsForIndex(data, this.state.lastIndex);
             }
 
             updatePriceDisplay(price) {
