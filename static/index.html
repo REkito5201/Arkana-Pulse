@@ -55,7 +55,7 @@
         #coin-select:focus { border-color: var(--color-rsi); }
         .rotate-arrow { transform: rotateX(0deg); } /* Логика вращения перенесена в JS через класс, если нужно */
 
-        .info { padding: 15px; text-align: center; }
+        .info { padding: 15px 20px; text-align: center; }
         #symbol-name { margin: 5px 0; font-size: 1.5rem; letter-spacing: 1px; }
         #rsi-container { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 10px; }
         #price-container { 
@@ -69,8 +69,75 @@
             transition: color 0.3s ease;
         }
         .price-arrow { font-size: 0.7em; }
-        
-        #chart-container { width: 100%; height: 500px; margin-top: 10px; }
+
+        .charts-wrapper {
+            padding: 0 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chart-panel {
+            background: #151925;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+
+        .chart-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            background: linear-gradient(90deg, rgba(33, 150, 243, 0.14), rgba(156, 39, 176, 0.05));
+        }
+
+        .chart-panel-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-muted);
+        }
+
+        .chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+        }
+
+        #price-chart,
+        #rsi-chart,
+        #macd-chart {
+            width: 100%;
+        }
+
+        #price-chart {
+            height: 320px;
+        }
+
+        #rsi-chart {
+            height: 120px;
+        }
+
+        #macd-chart {
+            height: 160px;
+        }
     </style>
 </head>
 <body>
@@ -94,7 +161,78 @@
         </div>
     </main>
 
-    <div id="chart-container"></div>
+    <div class="charts-wrapper">
+        <section class="chart-panel">
+            <header class="chart-panel-header">
+                <span class="chart-panel-title">Price · Bollinger Bands</span>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #26a69a;"></span>
+                        <span>Candle ↑</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #ef5350;"></span>
+                        <span>Candle ↓</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #2196F3;"></span>
+                        <span>BB Upper/Lower</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: rgba(255,255,255,0.6);"></span>
+                        <span>BB Basis</span>
+                    </span>
+                </div>
+            </header>
+            <div id="price-chart"></div>
+        </section>
+
+        <section class="chart-panel">
+            <header class="chart-panel-header">
+                <span class="chart-panel-title">RSI · Momentum</span>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #9c27b0;"></span>
+                        <span>RSI (14)</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: rgba(239,83,80,0.7);"></span>
+                        <span>70 Overbought</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: rgba(38,166,154,0.8);"></span>
+                        <span>30 Oversold</span>
+                    </span>
+                </div>
+            </header>
+            <div id="rsi-chart"></div>
+        </section>
+
+        <section class="chart-panel">
+            <header class="chart-panel-header">
+                <span class="chart-panel-title">MACD · Trend Strength</span>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #2962FF;"></span>
+                        <span>MACD</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #FF6D00;"></span>
+                        <span>Signal</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #26a69a;"></span>
+                        <span>Hist ↑</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background: #ef5350;"></span>
+                        <span>Hist ↓</span>
+                    </span>
+                </div>
+            </header>
+            <div id="macd-chart"></div>
+        </section>
+    </div>
 
     <script>
         /**
@@ -107,10 +245,25 @@
          */
 
         /**
-         * @typedef {Object} ApiResponse
-         * @property {Candle[]} candles
-         * @property {number[]} rsi_history
+         * @typedef {Object} SummaryPayload
+         * @property {number} price
          * @property {number} rsi
+         * @property {string} signal
+         */
+
+        /**
+         * @typedef {Object} ApiResponse
+         * @property {string} symbol
+         * @property {Candle[]} candles
+         * @property {number} rsi
+         * @property {number[]} rsi_history
+         * @property {number[]} bb_upper
+         * @property {number[]} bb_middle
+         * @property {number[]} bb_lower
+         * @property {number[]} macd_line
+         * @property {number[]} macd_signal
+         * @property {number[]} macd_hist
+         * @property {SummaryPayload} summary
          */
 
         class ArkanaPulseApp {
@@ -124,7 +277,12 @@
                         rsi: '#9c27b0',
                         bg: '#131722',
                         grid: '#2b2b43',
-                        text: '#d1d4dc'
+                        text: '#d1d4dc',
+                        // Новые цвета
+                        bb: 'rgba(33, 150, 243, 0.2)',
+                        bbLine: '#2196F3',
+                        macd: '#2962FF',
+                        macdSignal: '#FF6D00'
                     }
                 };
 
@@ -145,9 +303,20 @@
                     chartContainer: document.getElementById('chart-container')
                 };
 
-                this.chart = null;
+                // Чарты и серии
+                this.priceChart = null;
+                this.rsiChart = null;
+                this.macdChart = null;
+
                 this.candleSeries = null;
+                this.bbUpper = null;
+                this.bbMiddle = null;
+                this.bbLower = null;
+
                 this.rsiSeries = null;
+                this.macdSeries = null;
+                this.macdSignalSeries = null;
+                this.macdHistSeries = null;
                 
                 this.formatter = new Intl.NumberFormat('en-US', {
                     style: 'currency',
@@ -160,30 +329,37 @@
              * Инициализация приложения
              */
             async init() {
-                this.initChart();
+                this.initCharts();
                 this.setupEventListeners();
                 await this.updateData();
-                this.chart.timeScale().fitContent();
+                if (this.priceChart) {
+                    this.priceChart.timeScale().fitContent();
+                }
                 
                 // Запуск цикла обновления
                 setInterval(() => this.updateData(), this.CONFIG.UPDATE_INTERVAL);
             }
 
             /**
-             * Инициализация графика Lightweight Charts
+             * Инициализация графиков Lightweight Charts (Price, RSI, MACD)
              */
-            initChart() {
-                this.chart = LightweightCharts.createChart(this.elements.chartContainer, {
+            initCharts() {
+                const priceContainer = document.getElementById('price-chart');
+                const rsiContainer = document.getElementById('rsi-chart');
+                const macdContainer = document.getElementById('macd-chart');
+
+                // --- PRICE + BB ---
+                this.priceChart = LightweightCharts.createChart(priceContainer, {
                     layout: { 
                         background: { color: this.CONFIG.COLORS.bg }, 
                         textColor: this.CONFIG.COLORS.text 
                     },
-                    grid: { 
+                    grid: {
                         vertLines: { color: this.CONFIG.COLORS.grid }, 
                         horzLines: { color: this.CONFIG.COLORS.grid } 
                     },
-                    width: this.elements.chartContainer.clientWidth,
-                    height: 500,
+                    width: priceContainer.clientWidth,
+                    height: priceContainer.clientHeight,
                     timeScale: { borderVisible: false, timeVisible: true },
                     rightPriceScale: { 
                         visible: true, 
@@ -192,7 +368,7 @@
                 });
 
                 // Серия свечей
-                this.candleSeries = this.chart.addCandlestickSeries({
+                this.candleSeries = this.priceChart.addCandlestickSeries({
                     upColor: this.CONFIG.COLORS.up,
                     downColor: this.CONFIG.COLORS.down,
                     borderVisible: false,
@@ -200,28 +376,85 @@
                     wickDownColor: this.CONFIG.COLORS.down,
                 });
 
-                // Настройка отступов для основной цены (верхние 65%)
-                this.chart.priceScale('right').applyOptions({
-                    scaleMargins: { top: 0.05, bottom: 0.4 }
+                // BB Lines
+                const bbOptions = { lineWidth: 1, lastValueVisible: false, priceLineVisible: false };
+                this.bbUpper = this.priceChart.addLineSeries({ ...bbOptions, color: this.CONFIG.COLORS.bbLine });
+                this.bbMiddle = this.priceChart.addLineSeries({ ...bbOptions, color: 'rgba(255, 255, 255, 0.6)', lineStyle: 2 });
+                this.bbLower = this.priceChart.addLineSeries({ ...bbOptions, color: this.CONFIG.COLORS.bbLine });
+
+                // --- RSI ---
+                this.rsiChart = LightweightCharts.createChart(rsiContainer, {
+                    layout: { 
+                        background: { color: this.CONFIG.COLORS.bg }, 
+                        textColor: this.CONFIG.COLORS.text 
+                    },
+                    grid: { 
+                        vertLines: { color: this.CONFIG.COLORS.grid }, 
+                        horzLines: { color: this.CONFIG.COLORS.grid } 
+                    },
+                    width: rsiContainer.clientWidth,
+                    height: rsiContainer.clientHeight,
+                    timeScale: { borderVisible: false, timeVisible: true },
+                    rightPriceScale: { visible: true },
+                    handleScroll: {
+                        mouseWheel: false,
+                        pressedMouseMove: false
+                    },
+                    handleScale: {
+                        axisPressedMouseMove: false,
+                        mouseWheel: false,
+                        pinch: false
+                    }
                 });
 
-                // Серия RSI (на левой шкале)
-                this.rsiSeries = this.chart.addLineSeries({
+                this.rsiSeries = this.rsiChart.addLineSeries({
                     color: this.CONFIG.COLORS.rsi,
                     lineWidth: 2,
-                    priceScaleId: 'left',
-                });
-
-                // Настройка шкалы RSI (нижние 25%)
-                this.chart.priceScale('left').applyOptions({
-                    autoScale: true,
-                    scaleMargins: { top: 0.75, bottom: 0.05 }
                 });
 
                 this.addRsiLevels();
+
+                // --- MACD ---
+                this.macdChart = LightweightCharts.createChart(macdContainer, {
+                    layout: { 
+                        background: { color: this.CONFIG.COLORS.bg }, 
+                        textColor: this.CONFIG.COLORS.text 
+                    },
+                    grid: { 
+                        vertLines: { color: this.CONFIG.COLORS.grid }, 
+                        horzLines: { color: this.CONFIG.COLORS.grid } 
+                    },
+                    width: macdContainer.clientWidth,
+                    height: macdContainer.clientHeight,
+                    timeScale: { borderVisible: false, timeVisible: true },
+                    rightPriceScale: { visible: true },
+                    handleScroll: {
+                        mouseWheel: false,
+                        pressedMouseMove: false
+                    },
+                    handleScale: {
+                        axisPressedMouseMove: false,
+                        mouseWheel: false,
+                        pinch: false
+                    }
+                });
+
+                this.macdSeries = this.macdChart.addLineSeries({ 
+                    color: this.CONFIG.COLORS.macd, 
+                    lineWidth: 1 
+                });
+                this.macdSignalSeries = this.macdChart.addLineSeries({ 
+                    color: this.CONFIG.COLORS.macdSignal, 
+                    lineWidth: 1 
+                });
+                this.macdHistSeries = this.macdChart.addHistogramSeries({});
+
+                this.setupChartsSync();
             }
 
             addRsiLevels() {
+                if (!this.rsiSeries || !this.rsiChart) return;
+
                 [70, 30].forEach(level => {
                     this.rsiSeries.createPriceLine({
                         price: level,
@@ -230,6 +463,23 @@
                         lineStyle: 2,
                         axisLabelVisible: true,
                         title: level.toString()
+                    });
+                });
+            }
+
+            /**
+             * Синхронизация тайм-скейла: главный — ценовой чарт
+             */
+            setupChartsSync() {
+                if (!this.priceChart || !this.rsiChart || !this.macdChart) return;
+
+                const master = this.priceChart;
+                const slaves = [this.rsiChart, this.macdChart];
+
+                master.timeScale().subscribeVisibleTimeRangeChange((range) => {
+                    if (!range) return;
+                    slaves.forEach((chart) => {
+                        chart.timeScale().setVisibleRange(range);
                     });
                 });
             }
@@ -262,9 +512,20 @@
                 const currentPrice = lastCandle.close;
 
                 // 1. Обновление графиков
-                this.candleSeries.setData(data.candles);
+                if (this.candleSeries) {
+                    this.candleSeries.setData(data.candles);
+                }
+
+                // Обновление BB
+                if (this.bbUpper && this.bbMiddle && this.bbLower &&
+                    Array.isArray(data.bb_upper) && Array.isArray(data.bb_middle) && Array.isArray(data.bb_lower)) {
+                    this.bbUpper.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_upper[i] })));
+                    this.bbMiddle.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_middle[i] })));
+                    this.bbLower.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_lower[i] })));
+                }
                 
-                if (data.rsi_history) {
+                // Обновление RSI
+                if (this.rsiSeries && Array.isArray(data.rsi_history)) {
                     const rsiData = data.candles.map((c, i) => ({
                         time: c.time,
                         value: data.rsi_history[i] ?? 50
@@ -272,9 +533,23 @@
                     this.rsiSeries.setData(rsiData);
                 }
 
+                // Обновление MACD
+                if (this.macdSeries && this.macdSignalSeries && this.macdHistSeries &&
+                    Array.isArray(data.macd_line) && Array.isArray(data.macd_signal) && Array.isArray(data.macd_hist)) {
+                    this.macdSeries.setData(data.candles.map((c, i) => ({ time: c.time, value: data.macd_line[i] })));
+                    this.macdSignalSeries.setData(data.candles.map((c, i) => ({ time: c.time, value: data.macd_signal[i] })));
+                    this.macdHistSeries.setData(
+                        data.candles.map((c, i) => ({
+                            time: c.time,
+                            value: data.macd_hist[i],
+                            color: data.macd_hist[i] >= 0 ? this.CONFIG.COLORS.up : this.CONFIG.COLORS.down
+                        }))
+                    );
+                }
+
                 // 2. Обновление текстовых данных
                 this.updatePriceDisplay(currentPrice);
-                this.updateRsiDisplay(data.rsi);
+                this.updateRsiDisplay(data.rsi ?? (data.summary && data.summary.rsi));
                 
                 this.elements.symbol.textContent = this.state.currentSymbol;
                 document.title = `${this.formatter.format(currentPrice)} | ${this.state.currentSymbol}`;
@@ -296,24 +571,50 @@
             }
 
             updateRsiDisplay(rsiValue) {
-                const rsi = parseFloat(rsiValue);
-                this.elements.rsi.textContent = rsi.toFixed(2);
-                
-                if (rsi >= 70) this.elements.rsi.style.color = this.CONFIG.COLORS.down;
-                else if (rsi <= 30) this.elements.rsi.style.color = this.CONFIG.COLORS.up;
-                else this.elements.rsi.style.color = '#fff';
+                const numeric = Number(rsiValue);
+
+                if (!Number.isFinite(numeric)) {
+                    this.elements.rsi.textContent = '--';
+                    this.elements.rsi.style.color = '#fff';
+                    return;
+                }
+
+                this.elements.rsi.textContent = numeric.toFixed(2);
+
+                if (numeric >= 70) {
+                    this.elements.rsi.style.color = this.CONFIG.COLORS.down;
+                } else if (numeric <= 30) {
+                    this.elements.rsi.style.color = this.CONFIG.COLORS.up;
+                } else {
+                    this.elements.rsi.style.color = '#fff';
+                }
             }
 
             setupEventListeners() {
                 this.elements.select.addEventListener('change', (e) => {
                     this.state.currentSymbol = e.target.value;
                     this.elements.symbol.textContent = "Loading...";
-                    this.updateData().then(() => this.chart.timeScale().fitContent());
+                    this.updateData().then(() => {
+                        if (this.priceChart) {
+                            this.priceChart.timeScale().fitContent();
+                        }
+                    });
                     this.elements.select.blur();
                 });
 
                 window.addEventListener('resize', () => {
-                    this.chart.resize(this.elements.chartContainer.clientWidth, 500);
+                    if (this.priceChart) {
+                        const priceContainer = document.getElementById('price-chart');
+                        this.priceChart.resize(priceContainer.clientWidth, priceContainer.clientHeight);
+                    }
+                    if (this.rsiChart) {
+                        const rsiContainer = document.getElementById('rsi-chart');
+                        this.rsiChart.resize(rsiContainer.clientWidth, rsiContainer.clientHeight);
+                    }
+                    if (this.macdChart) {
+                        const macdContainer = document.getElementById('macd-chart');
+                        this.macdChart.resize(macdContainer.clientWidth, macdContainer.clientHeight);
+                    }
                 });
             }
         }
