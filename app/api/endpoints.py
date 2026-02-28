@@ -53,8 +53,29 @@ def format_indicator_series(series: List[Any], precision: int = 2) -> List[float
     """
     Вспомогательная функция для очистки данных (DRY).
     Превращает null/NaN в 0.0 и округляет значения.
+    Подходит для индикаторов, где нули в начале ряда не искажают шкалу.
     """
     return [round(float(x), precision) if x is not None else 0.0 for x in series]
+
+
+def format_indicator_series_nullable(
+    series: List[Any], precision: int = 2
+) -> List[float | None]:
+    """
+    Форматирование для индикаторов, где 0.0 — некорректная замена NaN.
+    Возвращает None для пустых значений, чтобы фронтенд видел разрывы в серии,
+    а не рисовал линии на нулевой цене (актуально для Ichimoku).
+    """
+    formatted: List[float | None] = []
+    for value in series:
+        if value is None:
+            formatted.append(None)
+        else:
+            try:
+                formatted.append(round(float(value), precision))
+            except (TypeError, ValueError):
+                formatted.append(None)
+    return formatted
 
 
 @router.get("/candles/{symbol}")
@@ -82,22 +103,22 @@ async def get_historical_candles(symbol: str) -> dict[str, Any]:
     macd_hist = format_indicator_series(df["macd_hist"].to_list(), precision=4)
 
     ichi_conversion = (
-        format_indicator_series(df["ichi_conversion"].to_list())
+        format_indicator_series_nullable(df["ichi_conversion"].to_list())
         if "ichi_conversion" in df.columns
         else []
     )
     ichi_base = (
-        format_indicator_series(df["ichi_base"].to_list())
+        format_indicator_series_nullable(df["ichi_base"].to_list())
         if "ichi_base" in df.columns
         else []
     )
     ichi_span_a = (
-        format_indicator_series(df["ichi_span_a"].to_list())
+        format_indicator_series_nullable(df["ichi_span_a"].to_list())
         if "ichi_span_a" in df.columns
         else []
     )
     ichi_span_b = (
-        format_indicator_series(df["ichi_span_b"].to_list())
+        format_indicator_series_nullable(df["ichi_span_b"].to_list())
         if "ichi_span_b" in df.columns
         else []
     )

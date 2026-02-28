@@ -267,7 +267,7 @@
             <span id="price-icon" class="price-arrow"></span>
         </div>
         <div class="info-badge">
-            <span class="info-badge-label">Fear &amp; Greed:</span>
+            <span class="info-badge-label">Market Fear &amp; Greed:</span>
             <span class="info-badge-pill">
                 <span id="fg-value">--</span>
                 <span id="fg-label"></span>
@@ -992,6 +992,7 @@
                     this.updateData().then(() => {
                         if (this.priceChart) {
                             this.priceChart.timeScale().fitContent();
+                            this.priceChart.priceScale('right').applyOptions({ autoScale: true });
                         }
                     });
                     this.elements.select.blur();
