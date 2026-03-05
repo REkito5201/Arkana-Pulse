@@ -33,8 +33,7 @@
             border-bottom: 1px solid var(--border-color); 
         }
         
-        #coin-select, 
-        #symbol-input { 
+        #coin-select { 
             appearance: none;
             padding: 12px 40px 12px 12px; 
             border-radius: 8px; 
@@ -53,7 +52,6 @@
             transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        #symbol-input:focus,
         #coin-select:focus { border-color: var(--color-rsi); }
         .rotate-arrow { transform: rotateX(0deg); } /* Логика вращения перенесена в JS через класс, если нужно */
 
@@ -252,20 +250,14 @@
 <body>
 
     <header class="controls">
-        <input
-            id="symbol-input"
-            list="symbol-list"
-            aria-label="Выберите или введите торговую пару"
-            placeholder="BTCUSDT"
-            autocomplete="off"
-        />
-        <datalist id="symbol-list">
+        <select id="coin-select" aria-label="Выберите торговую пару">
             <option value="BTCUSDT">BTC / USDT</option>
             <option value="ETHUSDT">ETH / USDT</option>
             <option value="SOLUSDT">SOL / USDT</option>
             <option value="TONUSDT">TON / USDT</option>
             <option value="BNBUSDT">BNB / USDT</option>
-        </datalist>
+            <option value="__CUSTOM__">Другая пара…</option>
+        </select>
     </header>
 
     <main class="info">
@@ -487,7 +479,7 @@
 
                 // Ссылки на DOM-элементы
                 this.elements = {
-                    symbolInput: document.getElementById('symbol-input'),
+                    select: document.getElementById('coin-select'),
                     symbol: document.getElementById('symbol-name'),
                     rsi: document.getElementById('rsi-value'),
                     price: document.getElementById('current-price'),
@@ -995,14 +987,32 @@
             }
 
             setupEventListeners() {
-                const input = this.elements.symbolInput;
-                if (!input) return;
+                const select = this.elements.select;
+                if (!select) return;
 
-                const applySymbol = () => {
-                    const raw = (input.value || '').trim();
+                const applySymbol = (rawValue) => {
+                    const raw = (rawValue || '').trim();
                     const symbol = raw ? raw.toUpperCase() : 'BTCUSDT';
                     this.state.currentSymbol = symbol;
                     this.elements.symbol.textContent = "Loading...";
+
+                    // Если это кастомный тикер, добавляем его в список (кроме опции "__CUSTOM__")
+                    if (symbol !== '__CUSTOM__') {
+                        let option = select.querySelector(`option[value="${symbol}"]`);
+                        const customOption = select.querySelector('option[value="__CUSTOM__"]');
+                        if (!option) {
+                            option = document.createElement('option');
+                            option.value = symbol;
+                            option.textContent = symbol;
+                            if (customOption) {
+                                select.insertBefore(option, customOption);
+                            } else {
+                                select.appendChild(option);
+                            }
+                        }
+                        select.value = symbol;
+                    }
+
                     this.updateData().then(() => {
                         if (this.priceChart) {
                             this.priceChart.timeScale().fitContent();
@@ -1011,11 +1021,28 @@
                     });
                 };
 
-                input.addEventListener('change', applySymbol);
-                input.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') {
-                        applySymbol();
-                        input.blur();
+                select.addEventListener('change', (event) => {
+                    const value = event.target.value;
+
+                    if (value === '__CUSTOM__') {
+                        const raw = window.prompt('Введите тикер пары, например AVAXUSDT');
+                        if (!raw) {
+                            // Возвращаем предыдущее значение, если пользователь отменил ввод
+                            select.value = this.state.currentSymbol;
+                            return;
+                        }
+
+                        const cleaned = raw.trim().toUpperCase();
+                        // Простая валидация: только латинские буквы/цифры, длина 4–20 символов
+                        if (!/^[A-Z0-9]{4,20}$/.test(cleaned)) {
+                            window.alert('Некорректный тикер. Используйте только латинские буквы и цифры, без пробелов.');
+                            select.value = this.state.currentSymbol;
+                            return;
+                        }
+
+                        applySymbol(cleaned);
+                    } else {
+                        applySymbol(value);
                     }
                 });
 
