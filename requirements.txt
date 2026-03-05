@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+aiogram
+redis
+aiohttp
+polars
+pandas-ta
+pydantic
+pydantic-settings
+httpx
+

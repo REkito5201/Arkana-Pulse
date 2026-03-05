@@ -2,21 +2,17 @@ import json
 from datetime import datetime
 from typing import Any, List
 
-import redis.asyncio as redis
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.config import settings
+from app.core.redis import redis_client
+from app.core.security import enforce_api_key, rate_limit, validate_symbol
 from app.engine.collectors import ExchangeCollector
 from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
 
-router = APIRouter()
-
-# Клиент Redis создаётся один раз на процесс и берёт настройки из ENV
-redis_client = redis.from_url(
-    settings.REDIS_URL,
-    db=0,
-    decode_responses=True,
+router = APIRouter(
+    dependencies=[Depends(enforce_api_key), Depends(rate_limit)],
 )
 
 class RedisService:
@@ -79,9 +75,8 @@ def format_indicator_series_nullable(
 
 
 @router.get("/candles/{symbol}")
-async def get_historical_candles(symbol: str) -> dict[str, Any]:
+async def get_historical_candles(symbol: str = Depends(validate_symbol)) -> dict[str, Any]:
     """Возвращает полный пакет данных для графиков (Свечи + BB + MACD + RSI)."""
-    symbol = symbol.upper()
     collector = ExchangeCollector()
     scanner = MarketScanner()
 
@@ -188,9 +183,8 @@ async def get_historical_candles(symbol: str) -> dict[str, Any]:
     }
 
 @router.get("/signal/{symbol}")
-async def get_crypto_signal(symbol: str) -> dict[str, Any]:
+async def get_crypto_signal(symbol: str = Depends(validate_symbol)) -> dict[str, Any]:
     """Быстрый эндпоинт только для вердикта."""
-    symbol = symbol.upper()
     collector = ExchangeCollector()
     scanner = MarketScanner()
 

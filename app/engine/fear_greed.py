@@ -4,22 +4,14 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 import httpx
-import redis.asyncio as redis
 
-from app.core.config import settings
+from app.core.redis import redis_client
 
 
 class FearGreedPayload(TypedDict, total=False):
     value: int
     classification: str
     timestamp: int
-
-
-redis_client = redis.from_url(
-    settings.REDIS_URL,
-    db=0,
-    decode_responses=True,
-)
 
 
 class FearGreedService:
