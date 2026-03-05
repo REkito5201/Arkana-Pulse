@@ -33,7 +33,8 @@
             border-bottom: 1px solid var(--border-color); 
         }
         
-        #coin-select { 
+        #coin-select, 
+        #symbol-input { 
             appearance: none;
             padding: 12px 40px 12px 12px; 
             border-radius: 8px; 
@@ -52,6 +53,7 @@
             transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
+        #symbol-input:focus,
         #coin-select:focus { border-color: var(--color-rsi); }
         .rotate-arrow { transform: rotateX(0deg); } /* Логика вращения перенесена в JS через класс, если нужно */
 
@@ -250,13 +252,20 @@
 <body>
 
     <header class="controls">
-        <select id="coin-select" aria-label="Выберите торговую пару">
+        <input
+            id="symbol-input"
+            list="symbol-list"
+            aria-label="Выберите или введите торговую пару"
+            placeholder="BTCUSDT"
+            autocomplete="off"
+        />
+        <datalist id="symbol-list">
             <option value="BTCUSDT">BTC / USDT</option>
             <option value="ETHUSDT">ETH / USDT</option>
             <option value="SOLUSDT">SOL / USDT</option>
             <option value="TONUSDT">TON / USDT</option>
             <option value="BNBUSDT">BNB / USDT</option>
-        </select>
+        </datalist>
     </header>
 
     <main class="info">
@@ -478,7 +487,7 @@
 
                 // Ссылки на DOM-элементы
                 this.elements = {
-                    select: document.getElementById('coin-select'),
+                    symbolInput: document.getElementById('symbol-input'),
                     symbol: document.getElementById('symbol-name'),
                     rsi: document.getElementById('rsi-value'),
                     price: document.getElementById('current-price'),
@@ -986,8 +995,13 @@
             }
 
             setupEventListeners() {
-                this.elements.select.addEventListener('change', (e) => {
-                    this.state.currentSymbol = e.target.value;
+                const input = this.elements.symbolInput;
+                if (!input) return;
+
+                const applySymbol = () => {
+                    const raw = (input.value || '').trim();
+                    const symbol = raw ? raw.toUpperCase() : 'BTCUSDT';
+                    this.state.currentSymbol = symbol;
                     this.elements.symbol.textContent = "Loading...";
                     this.updateData().then(() => {
                         if (this.priceChart) {
@@ -995,7 +1009,14 @@
                             this.priceChart.priceScale('right').applyOptions({ autoScale: true });
                         }
                     });
-                    this.elements.select.blur();
+                };
+
+                input.addEventListener('change', applySymbol);
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        applySymbol();
+                        input.blur();
+                    }
                 });
 
                 window.addEventListener('resize', () => {
