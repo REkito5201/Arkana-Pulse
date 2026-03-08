@@ -1,0 +1,13 @@
+# Ruff: линтер и форматтер для Python.
+# https://docs.astral.sh/ruff/
+
+target-version = "py312"
+line-length = 100
+exclude = ["venv", ".git", "__pycache__"]
+
+[lint]
+select = ["E", "F", "I", "UP"]
+ignore = []
+
+[lint.isort]
+known-first-party = ["app"]

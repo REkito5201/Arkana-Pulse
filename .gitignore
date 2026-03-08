@@ -3,3 +3,5 @@ venv/
 .env
 .vscode/
 *.pyc
+.secrets/
+nginx/ssl/*.pem

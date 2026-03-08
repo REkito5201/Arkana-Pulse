@@ -4,8 +4,10 @@ aiogram
 redis
 aiohttp
 polars
+pyarrow
 pandas-ta
 pydantic
 pydantic-settings
 httpx
+prometheus-client
 

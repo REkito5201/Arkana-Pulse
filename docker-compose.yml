@@ -1,20 +1,25 @@
-version: "3.9"
+# Compose V2: атрибут version устарел, не указываем.
+# Сети: front (nginx + api), back (api + redis, internal) — Redis недоступен снаружи.
 
 services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    networks:
+      - back
 
   api:
     build: .
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       - redis
-    # Порт 8000 не публикуем наружу — весь трафик идёт через nginx (безопасность, единая точка входа).
+    networks:
+      - front
+      - back
 
   nginx:
     image: nginx:alpine
@@ -23,7 +28,17 @@ services:
       - api
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - front
 
+networks:
+  front:
+    driver: bridge
+  back:
+    driver: bridge
+    internal: true

@@ -32,4 +32,14 @@
 docker compose up -d
 ```
 
-Сайт доступен по адресу **http://localhost** (порт 80). Для HTTPS позже можно добавить сервер с `listen 443 ssl` и сертификаты (например, Let's Encrypt).
+Сайт доступен по адресу **http://localhost** (порт 80).
+
+## HTTPS
+
+- Пример конфига с TLS и редиректом HTTP→HTTPS: **`conf.d/arkana-ssl.conf.example`**. Скопируйте в `arkana-ssl.conf`, поместите сертификаты в `nginx/ssl/` (например, `fullchain.pem`, `privkey.pem`). Чтобы не было двух серверов на порту 80, переименуйте или удалите `arkana.conf` (или отключите его, переименовав в `arkana.conf.disabled`), затем перезапустите nginx.
+- Самоподписанный сертификат для разработки: из корня проекта выполните `./scripts/generate-dev-cert.sh`, затем включите HTTPS-конфиг по инструкции выше.
+- В production используйте Let's Encrypt (certbot) или сертификаты вашего CA.
+
+## Логи в JSON
+
+В `nginx.conf` задан формат **`json`** для access-лога. Чтобы писать access-лог в JSON, в нужном `server` укажите: `access_log /var/log/nginx/access.log json;`

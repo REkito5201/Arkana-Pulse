@@ -5,10 +5,9 @@ from app.core.config import settings
 from app.bot.handlers import router
 
 async def main():
-    # Включаем логирование, чтобы видеть, если бот упадёт
     logging.basicConfig(level=logging.INFO)
-
-    # Инициализируем бота и диспетчер
+    if not settings.BOT_TOKEN:
+        raise ValueError("BOT_TOKEN или BOT_TOKEN_FILE обязателен для запуска бота")
     bot = Bot(token=settings.BOT_TOKEN.get_secret_value())
     dp = Dispatcher()
 
