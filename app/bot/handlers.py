@@ -18,6 +18,46 @@ router = Router()
 LANG_CALLBACK_PREFIX = "lang:"
 LEGEND_CALLBACK_PREFIX = "legend:"
 
+
+def build_legend_keyboard(lang: str) -> InlineKeyboardMarkup:
+    """Строит клавиатуру для меню легенды (RSI/BB/MACD/Ichimoku/Fear&Greed + Назад)."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_rsi", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "rsi",
+                ),
+                InlineKeyboardButton(
+                    text=t("legend.btn_bb", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "bb",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_macd", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "macd",
+                ),
+                InlineKeyboardButton(
+                    text=t("legend.btn_ichimoku", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "ichimoku",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_fear_greed", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "fear_greed",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_back", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "back",
+                ),
+            ],
+        ]
+    )
+
 @router.message(Command("start"))
 async def cmd_start(message: types.Message) -> None:
     # Язык: из Redis или из профиля Telegram (language_code), иначе en.
@@ -104,36 +144,7 @@ async def cmd_legend(message: types.Message) -> None:
         message.chat.id,
         message.from_user.language_code if message.from_user else None,
     )
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=t("legend.btn_rsi", lang),
-                    callback_data=LEGEND_CALLBACK_PREFIX + "rsi",
-                ),
-                InlineKeyboardButton(
-                    text=t("legend.btn_bb", lang),
-                    callback_data=LEGEND_CALLBACK_PREFIX + "bb",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=t("legend.btn_macd", lang),
-                    callback_data=LEGEND_CALLBACK_PREFIX + "macd",
-                ),
-                InlineKeyboardButton(
-                    text=t("legend.btn_ichimoku", lang),
-                    callback_data=LEGEND_CALLBACK_PREFIX + "ichimoku",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=t("legend.btn_fear_greed", lang),
-                    callback_data=LEGEND_CALLBACK_PREFIX + "fear_greed",
-                ),
-            ],
-        ]
-    )
+    markup = build_legend_keyboard(lang)
     await reply_or_edit(
         message,
         t("legend.menu_title", lang),
@@ -194,14 +205,25 @@ async def callback_legend(callback: CallbackQuery) -> None:
         return
 
     key = callback.data[len(LEGEND_CALLBACK_PREFIX) :].lower()
-    if key not in ("rsi", "bb", "macd", "ichimoku", "fear_greed"):
-        await callback.answer()
-        return
-
     lang = await get_user_lang(
         callback.message.chat.id,
         callback.from_user.language_code if callback.from_user else None,
     )
+    if key == "back":
+        # Вернуться в меню легенды: рисуем ту же клавиатуру и заголовок.
+        markup = build_legend_keyboard(lang)
+        await callback.message.edit_text(
+            t("legend.menu_title", lang),
+            reply_markup=markup,
+            parse_mode="Markdown",
+        )
+        await callback.answer()
+        return
+
+    if key not in ("rsi", "bb", "macd", "ichimoku", "fear_greed"):
+        await callback.answer()
+        return
+
     text_key = f"legend.{key}"
     await callback.message.edit_text(t(text_key, lang), parse_mode="Markdown")
     await callback.answer()

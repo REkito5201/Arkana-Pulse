@@ -32,6 +32,7 @@ EN = {
     "legend.btn_macd": "MACD",
     "legend.btn_ichimoku": "Ichimoku",
     "legend.btn_fear_greed": "Fear & Greed Index",
+    "legend.btn_back": "⬅️ Back",
     "legend.rsi": "📊 *RSI (Relative Strength Index)*\n\n"
     "Oscillator from 0 to 100. Values above 70 often mean overbought market, below 30 — oversold.",
     "legend.bb": "📊 *Bollinger Bands*\n\n"

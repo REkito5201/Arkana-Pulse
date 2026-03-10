@@ -36,6 +36,7 @@ RU = {
     "legend.btn_macd": "MACD",
     "legend.btn_ichimoku": "Ichimoku",
     "legend.btn_fear_greed": "Fear & Greed Index",
+    "legend.btn_back": "⬅️ Назад",
     "legend.rsi": "📊 *RSI (Relative Strength Index)*\n\n"
     "Осциллятор от 0 до 100. Значения выше 70 часто означают перекупленность рынка, ниже 30 — перепроданность.",
     "legend.bb": "📊 *Bollinger Bands*\n\n"

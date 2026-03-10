@@ -71,7 +71,8 @@ async def delete_user_message_safely(message: types.Message) -> None:
     - Удаляем только в личных чатах (ChatType.PRIVATE), чтобы не ломать историю в группах.
     - Игнорируем ошибки TelegramBadRequest (нет прав, сообщение уже удалено и т.п.).
     """
-    if message.chat.type is not ChatType.PRIVATE:
+    # В aiogram message.chat.type — это ChatType, поэтому сравниваем через ==/!=, а не is.
+    if message.chat.type != ChatType.PRIVATE:
         return
 
     try:
