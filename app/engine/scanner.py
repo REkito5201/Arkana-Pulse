@@ -1,5 +1,9 @@
+import logging
+
 import polars as pl
 import pandas_ta as ta
+
+logger = logging.getLogger(__name__)
 
 
 class MarketScanner:
@@ -77,32 +81,45 @@ class MarketScanner:
             [(pl.col("macd_line") - pl.col("macd_signal")).alias("macd_hist")]
         )
 
-        # 5. Ichimoku (через pandas_ta)
+        # 5. Ichimoku (через pandas_ta): возвращает (ichimokudf, spandf)
         high_pd = df["high"].to_pandas()
         low_pd = df["low"].to_pandas()
         close_pd = df["close"].to_pandas()
+        tenkan, kijun, senkou = 9, 26, 52
 
         try:
-            ichi_conversion, ichi_base, ichi_span_a, ichi_span_b = ta.ichimoku(
+            result = ta.ichimoku(
                 high=high_pd,
                 low=low_pd,
                 close=close_pd,
-                tenkan=9,
-                kijun=26,
-                senkou=52,
+                tenkan=tenkan,
+                kijun=kijun,
+                senkou=senkou,
             )
+            if result is None or result[0] is None:
+                logger.warning("Ichimoku returned None (insufficient data?)")
+                return df
+
+            ichimokudf, _spandf = result
+            # Колонки: ISA_9, ISB_26, ITS_9, IKS_26 (и опционально Chikou)
+            col_conv = f"ITS_{tenkan}"
+            col_base = f"IKS_{kijun}"
+            col_span_a = f"ISA_{tenkan}"
+            col_span_b = f"ISB_{kijun}"
+            if not all(c in ichimokudf.columns for c in (col_conv, col_base, col_span_a, col_span_b)):
+                logger.warning("Ichimoku DataFrame missing expected columns: %s", list(ichimokudf.columns))
+                return df
 
             df = df.with_columns(
                 [
-                    pl.from_pandas(ichi_conversion).alias("ichi_conversion"),
-                    pl.from_pandas(ichi_base).alias("ichi_base"),
-                    pl.from_pandas(ichi_span_a).alias("ichi_span_a"),
-                    pl.from_pandas(ichi_span_b).alias("ichi_span_b"),
+                    pl.from_pandas(ichimokudf[col_conv]).alias("ichi_conversion"),
+                    pl.from_pandas(ichimokudf[col_base]).alias("ichi_base"),
+                    pl.from_pandas(ichimokudf[col_span_a]).alias("ichi_span_a"),
+                    pl.from_pandas(ichimokudf[col_span_b]).alias("ichi_span_b"),
                 ]
             )
-        except Exception:
-            # Если расчёт Ишимоку не удался, просто возвращаем df без этих колонок
-            pass
+        except Exception as e:
+            logger.exception("Ichimoku calculation failed: %s", e)
 
         return df
 

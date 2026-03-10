@@ -20,7 +20,7 @@ LEGEND_CALLBACK_PREFIX = "legend:"
 
 
 def build_legend_keyboard(lang: str) -> InlineKeyboardMarkup:
-    """Строит клавиатуру для меню легенды (RSI/BB/MACD/Ichimoku/Fear&Greed + Назад)."""
+    """Строит клавиатуру главного меню легенды (только RSI/BB/MACD/Ichimoku/Fear&Greed)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -49,6 +49,14 @@ def build_legend_keyboard(lang: str) -> InlineKeyboardMarkup:
                     callback_data=LEGEND_CALLBACK_PREFIX + "fear_greed",
                 ),
             ],
+        ]
+    )
+
+
+def build_legend_back_keyboard(lang: str) -> InlineKeyboardMarkup:
+    """Клавиатура только с кнопкой «Назад» — для экрана определения индикатора."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
             [
                 InlineKeyboardButton(
                     text=t("legend.btn_back", lang),
@@ -225,5 +233,10 @@ async def callback_legend(callback: CallbackQuery) -> None:
         return
 
     text_key = f"legend.{key}"
-    await callback.message.edit_text(t(text_key, lang), parse_mode="Markdown")
+    markup = build_legend_back_keyboard(lang)
+    await callback.message.edit_text(
+        t(text_key, lang),
+        parse_mode="Markdown",
+        reply_markup=markup,
+    )
     await callback.answer()

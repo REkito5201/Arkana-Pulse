@@ -111,9 +111,30 @@
         .chart-legend {
             display: flex;
             align-items: center;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 8px 16px;
             font-size: 0.75rem;
             color: var(--text-muted);
+        }
+
+        .legend-group {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .legend-group + .legend-group {
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            padding-left: 12px;
+            margin-left: 4px;
+        }
+
+        .legend-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.8;
         }
 
         .legend-item {
@@ -295,29 +316,57 @@
                     <button class="def-icon" type="button" data-def="ichimoku">?</button>
                 </span>
                 <div class="chart-legend">
-                    <span class="legend-item" data-series="candle">
-                        <span class="legend-dot" style="background: #26a69a;"></span>
-                        <span>Candle ↑</span>
-                    </span>
-                    <span class="legend-item" data-series="candle">
-                        <span class="legend-dot" style="background: #ef5350;"></span>
-                        <span>Candle ↓</span>
-                    </span>
-                    <span class="legend-item" data-series="bb">
-                        <span class="legend-dot" style="background: #2196F3;"></span>
-                        <span>BB Upper</span>
-                        <span id="legend-bb-upper" class="legend-value">--</span>
-                    </span>
-                    <span class="legend-item" data-series="bb">
-                        <span class="legend-dot" style="background: #2196F3;"></span>
-                        <span>BB Lower</span>
-                        <span id="legend-bb-lower" class="legend-value">--</span>
-                    </span>
-                    <span class="legend-item" data-series="bb">
-                        <span class="legend-dot" style="background: rgba(255,255,255,0.6);"></span>
-                        <span>BB Basis</span>
-                        <span id="legend-bb-basis" class="legend-value">--</span>
-                    </span>
+                    <div class="legend-group">
+                        <span class="legend-item" data-series="candle">
+                            <span class="legend-dot" style="background: #26a69a;"></span>
+                            <span>Candle ↑</span>
+                        </span>
+                        <span class="legend-item" data-series="candle">
+                            <span class="legend-dot" style="background: #ef5350;"></span>
+                            <span>Candle ↓</span>
+                        </span>
+                    </div>
+                    <div class="legend-group">
+                        <span class="legend-label">BB</span>
+                        <span class="legend-item" data-series="bb">
+                            <span class="legend-dot" style="background: #2196F3;"></span>
+                            <span>Upper</span>
+                            <span id="legend-bb-upper" class="legend-value">--</span>
+                        </span>
+                        <span class="legend-item" data-series="bb">
+                            <span class="legend-dot" style="background: #2196F3;"></span>
+                            <span>Lower</span>
+                            <span id="legend-bb-lower" class="legend-value">--</span>
+                        </span>
+                        <span class="legend-item" data-series="bb">
+                            <span class="legend-dot" style="background: rgba(255,255,255,0.6);"></span>
+                            <span>Basis</span>
+                            <span id="legend-bb-basis" class="legend-value">--</span>
+                        </span>
+                    </div>
+                    <div class="legend-group">
+                        <span class="legend-label">Ichimoku</span>
+                        <span class="legend-item" data-series="ichi">
+                            <span class="legend-dot" style="background: #FF9800;"></span>
+                            <span>Tenkan</span>
+                            <span id="legend-ichi-tenkan" class="legend-value">--</span>
+                        </span>
+                        <span class="legend-item" data-series="ichi">
+                            <span class="legend-dot" style="background: #FFEB3B;"></span>
+                            <span>Kijun</span>
+                            <span id="legend-ichi-kijun" class="legend-value">--</span>
+                        </span>
+                        <span class="legend-item" data-series="ichi">
+                            <span class="legend-dot" style="background: rgba(76, 175, 80, 0.9);"></span>
+                            <span>Span A</span>
+                            <span id="legend-ichi-span-a" class="legend-value">--</span>
+                        </span>
+                        <span class="legend-item" data-series="ichi">
+                            <span class="legend-dot" style="background: rgba(244, 67, 54, 0.9);"></span>
+                            <span>Span B</span>
+                            <span id="legend-ichi-span-b" class="legend-value">--</span>
+                        </span>
+                    </div>
                 </div>
             </header>
             <div id="price-chart"></div>
@@ -501,6 +550,10 @@
                         bbUpper: document.getElementById('legend-bb-upper'),
                         bbLower: document.getElementById('legend-bb-lower'),
                         bbBasis: document.getElementById('legend-bb-basis'),
+                        ichiTenkan: document.getElementById('legend-ichi-tenkan'),
+                        ichiKijun: document.getElementById('legend-ichi-kijun'),
+                        ichiSpanA: document.getElementById('legend-ichi-span-a'),
+                        ichiSpanB: document.getElementById('legend-ichi-span-b'),
                         rsi: document.getElementById('legend-rsi'),
                         macd: document.getElementById('legend-macd'),
                         macdSignal: document.getElementById('legend-macd-signal'),
@@ -786,6 +839,8 @@
                 const macdHist = get(data.macd_hist);
                 const ichiConv = get(data.ichi_conversion);
                 const ichiBase = get(data.ichi_base);
+                const ichiSpanA = get(data.ichi_span_a);
+                const ichiSpanB = get(data.ichi_span_b);
 
                 const setLegend = (el, value, digits = 2) => {
                     if (!el) return;
@@ -799,6 +854,10 @@
                 setLegend(this.elements.legends.bbUpper, bbUpper);
                 setLegend(this.elements.legends.bbLower, bbLower);
                 setLegend(this.elements.legends.bbBasis, bbBasis);
+                setLegend(this.elements.legends.ichiTenkan, ichiConv);
+                setLegend(this.elements.legends.ichiKijun, ichiBase);
+                setLegend(this.elements.legends.ichiSpanA, ichiSpanA);
+                setLegend(this.elements.legends.ichiSpanB, ichiSpanB);
                 setLegend(this.elements.legends.rsi, rsi);
                 setLegend(this.elements.legends.macd, macd, 4);
                 setLegend(this.elements.legends.macdSignal, macdSignal, 4);
