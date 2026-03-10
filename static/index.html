@@ -27,10 +27,17 @@
         }
 
         .controls { 
-            padding: 15px; 
+            padding: 15px 15px 10px; 
             text-align: center; 
             background: var(--bg-accent); 
             border-bottom: 1px solid var(--border-color); 
+        }
+        
+        .controls-hint {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            opacity: 0.85;
         }
         
         #coin-select { 
@@ -258,6 +265,9 @@
             <option value="BNBUSDT">BNB / USDT</option>
             <option value="__CUSTOM__">Другая пара…</option>
         </select>
+        <p class="controls-hint">
+            Нажмите значок «?» рядом с названием панели, чтобы посмотреть определение индикатора.
+        </p>
     </header>
 
     <main class="info">

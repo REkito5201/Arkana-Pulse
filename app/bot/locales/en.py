@@ -25,7 +25,25 @@ EN = {
     "show support/resistance zones and price balance.\n\n",
     "cmd_help_indicators.fear_greed": "• *Fear & Greed Index* — aggregated market sentiment from 0 (fear) "
     "to 100 (greed). Extreme values often align with reversals.",
-    "cmd_lang.current": "🌐 Language: *{lang}*. Choose another:",
+    # /legend
+    "legend.menu_title": "📚 Choose an indicator to see a short definition:",
+    "legend.btn_rsi": "RSI",
+    "legend.btn_bb": "Bollinger Bands",
+    "legend.btn_macd": "MACD",
+    "legend.btn_ichimoku": "Ichimoku",
+    "legend.btn_fear_greed": "Fear & Greed Index",
+    "legend.rsi": "📊 *RSI (Relative Strength Index)*\n\n"
+    "Oscillator from 0 to 100. Values above 70 often mean overbought market, below 30 — oversold.",
+    "legend.bb": "📊 *Bollinger Bands*\n\n"
+    "Bands around the average price. Upper and lower bands help see statistically high and low price values.",
+    "legend.macd": "📊 *MACD*\n\n"
+    "Difference between two exponential moving averages and its smoothing. Lines and histogram show trend strength "
+    "and possible reversals.",
+    "legend.ichimoku": "📊 *Ichimoku Cloud*\n\n"
+    "Complex trend indicator. Span A/B cloud defines support/resistance zones, Tenkan/Kijun lines show price balance.",
+    "legend.fear_greed": "📊 *Fear & Greed Index*\n\n"
+    "Aggregated market sentiment from 0 (fear) to 100 (greed). Extreme values often coincide with market reversals.",
+    "cmd_lang.current": "🌐 Language: *{current}*. Choose another:",
     "cmd_lang.saved_ru": "✅ Язык изменён на русский.",
     "cmd_lang.saved_en": "✅ Language set to English.",
     "cmd_lang.btn_ru": "🇷🇺 Русский",

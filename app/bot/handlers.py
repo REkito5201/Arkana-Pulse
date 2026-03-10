@@ -14,9 +14,9 @@ from app.engine.scanner import MarketScanner
 
 router = Router()
 
-# Префикс callback_data для кнопок смены языка. Ограничиваем длину (лимит Telegram 64 байта).
+# Префиксы callback_data. Ограничиваем длину (лимит Telegram 64 байта).
 LANG_CALLBACK_PREFIX = "lang:"
-
+LEGEND_CALLBACK_PREFIX = "legend:"
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message) -> None:
@@ -97,21 +97,48 @@ async def cmd_fear_greed(message: types.Message) -> None:
     await delete_user_message_safely(message)
 
 
-@router.message(Command("help_indicators"))
-async def cmd_help_indicators(message: types.Message) -> None:
+@router.message(Command("legend"))
+async def cmd_legend(message: types.Message) -> None:
+    """Меню с определениями индикаторов (легенда)."""
     lang = await get_user_lang(
         message.chat.id,
         message.from_user.language_code if message.from_user else None,
     )
-    text = (
-        t("cmd_help_indicators.title", lang)
-        + t("cmd_help_indicators.rsi", lang)
-        + t("cmd_help_indicators.bb", lang)
-        + t("cmd_help_indicators.macd", lang)
-        + t("cmd_help_indicators.ichimoku", lang)
-        + t("cmd_help_indicators.fear_greed", lang)
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_rsi", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "rsi",
+                ),
+                InlineKeyboardButton(
+                    text=t("legend.btn_bb", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "bb",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_macd", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "macd",
+                ),
+                InlineKeyboardButton(
+                    text=t("legend.btn_ichimoku", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "ichimoku",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("legend.btn_fear_greed", lang),
+                    callback_data=LEGEND_CALLBACK_PREFIX + "fear_greed",
+                ),
+            ],
+        ]
     )
-    await reply_or_edit(message, text)
+    await reply_or_edit(
+        message,
+        t("legend.menu_title", lang),
+        reply_markup=markup,
+    )
     await delete_user_message_safely(message)
 
 
@@ -157,4 +184,24 @@ async def callback_lang(callback: CallbackQuery) -> None:
     await set_user_lang(callback.message.chat.id, lang_code)
     feedback = t("cmd_lang.saved_ru", lang_code) if lang_code == "ru" else t("cmd_lang.saved_en", lang_code)
     await callback.message.edit_text(feedback, parse_mode="Markdown")
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data and c.data.startswith(LEGEND_CALLBACK_PREFIX))
+async def callback_legend(callback: CallbackQuery) -> None:
+    """Отправка определения индикатора из легенды по нажатию на кнопку."""
+    if not callback.data or not callback.message:
+        return
+
+    key = callback.data[len(LEGEND_CALLBACK_PREFIX) :].lower()
+    if key not in ("rsi", "bb", "macd", "ichimoku", "fear_greed"):
+        await callback.answer()
+        return
+
+    lang = await get_user_lang(
+        callback.message.chat.id,
+        callback.from_user.language_code if callback.from_user else None,
+    )
+    text_key = f"legend.{key}"
+    await callback.message.edit_text(t(text_key, lang), parse_mode="Markdown")
     await callback.answer()
