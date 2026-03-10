@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from aiogram import types
+from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramBadRequest
 
 from app.core.redis import redis_client
@@ -61,3 +62,19 @@ async def reply_or_edit(
     )
     await redis_client.set(key, str(msg.message_id))
     await redis_client.expire(key, LAST_BOT_MSG_TTL)
+
+
+async def delete_user_message_safely(message: types.Message) -> None:
+    """
+    Аккуратно удаляет сообщение пользователя с командой, чтобы не засорять чат.
+
+    - Удаляем только в личных чатах (ChatType.PRIVATE), чтобы не ломать историю в группах.
+    - Игнорируем ошибки TelegramBadRequest (нет прав, сообщение уже удалено и т.п.).
+    """
+    if message.chat.type is not ChatType.PRIVATE:
+        return
+
+    try:
+        await message.delete()
+    except TelegramBadRequest as e:
+        logger.debug("Failed to delete user message in chat_id=%s: %s", message.chat.id, e)

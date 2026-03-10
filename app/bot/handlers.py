@@ -5,7 +5,7 @@ from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-from app.bot.anti_spam import reply_or_edit
+from app.bot.anti_spam import delete_user_message_safely, reply_or_edit
 from app.bot.i18n import get_user_lang, set_user_lang, t
 from app.core.config import settings
 from app.engine.collectors import ExchangeCollector
@@ -38,11 +38,8 @@ async def cmd_start(message: types.Message) -> None:
         ]
     )
     # reply_or_edit: не плодим сообщения, обновляем последнее.
-    await reply_or_edit(
-        message,
-        t("cmd_start.greeting", lang),
-        reply_markup=markup,
-    )
+    await reply_or_edit(message, t("cmd_start.greeting", lang), reply_markup=markup)
+    await delete_user_message_safely(message)
 
 
 @router.message(Command("check"))
@@ -75,6 +72,7 @@ async def cmd_check(message: types.Message) -> None:
         + t("cmd_check.verdict", lang, value=res["signal"])
     )
     await reply_or_edit(message, text)
+    await delete_user_message_safely(message)
 
 
 @router.message(Command("fear_greed"))
@@ -96,6 +94,7 @@ async def cmd_fear_greed(message: types.Message) -> None:
         + t("cmd_fear_greed.classification", lang, value=classification)
     )
     await reply_or_edit(message, text)
+    await delete_user_message_safely(message)
 
 
 @router.message(Command("help_indicators"))
@@ -113,6 +112,7 @@ async def cmd_help_indicators(message: types.Message) -> None:
         + t("cmd_help_indicators.fear_greed", lang)
     )
     await reply_or_edit(message, text)
+    await delete_user_message_safely(message)
 
 
 @router.message(Command("lang"))
@@ -139,9 +139,10 @@ async def cmd_lang(message: types.Message) -> None:
     )
     await reply_or_edit(
         message,
-        t("cmd_lang.current", lang, lang=display_name),
+        t("cmd_lang.current", lang, current=display_name),
         reply_markup=markup,
     )
+    await delete_user_message_safely(message)
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith(LANG_CALLBACK_PREFIX))
