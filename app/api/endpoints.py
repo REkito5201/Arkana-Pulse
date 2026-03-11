@@ -10,6 +10,7 @@ from app.core.security import enforce_api_key, rate_limit, validate_symbol
 from app.engine.collectors import ExchangeCollector
 from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
+from app.engine.arbitrage import ArbitrageService
 
 router = APIRouter(
     dependencies=[Depends(enforce_api_key), Depends(rate_limit)],
@@ -194,3 +195,19 @@ async def get_crypto_signal(symbol: str = Depends(validate_symbol)) -> dict[str,
     
     df = scanner.analyze_assets(raw_data)
     return scanner.get_signal(df)
+
+
+@router.get("/arbitrage/{symbol}")
+async def get_arbitrage_opportunity(
+    symbol: str = Depends(validate_symbol),
+    min_spread_pct: float = 0.1,
+) -> dict[str, Any]:
+    """
+    Простой поиск кросс‑биржевого арбитража для одной пары.
+
+    min_spread_pct: минимальный процент спреда, при котором возможность
+    считается интересной. По умолчанию 0.1% — консервативное значение,
+    которое можно переопределить параметром запроса.
+    """
+    service = ArbitrageService()
+    return await service.scan_symbol(symbol, min_spread_pct=min_spread_pct)
