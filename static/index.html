@@ -181,6 +181,53 @@
             color: var(--text-muted);
         }
 
+        /* Арбитражный виджет */
+        .arbitrage-content {
+            padding: 10px 14px 14px;
+            font-size: 0.8rem;
+        }
+
+        .arbitrage-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .arbitrage-summary__label {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .arbitrage-summary__value {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .arbitrage-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .arbitrage-table th,
+        .arbitrage-table td {
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .arbitrage-table th {
+            text-align: left;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .arbitrage-table tr + tr td {
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
         .info-badge-pill {
             padding: 2px 8px;
             border-radius: 999px;
@@ -375,6 +422,30 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
+                    Arbitrage · Cross-Exchange
+                </span>
+            </header>
+            <div class="arbitrage-content">
+                <div class="arbitrage-summary">
+                    <span class="arbitrage-summary__label">Spread</span>
+                    <span id="arb-summary" class="arbitrage-summary__value">Нет данных</span>
+                </div>
+                <table class="arbitrage-table">
+                    <thead>
+                        <tr>
+                            <th>Биржа</th>
+                            <th>Цена</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arb-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="chart-panel">
+            <header class="chart-panel-header">
+                <span class="chart-panel-title">
                     RSI · Momentum
                     <button class="def-icon" type="button" data-def="rsi">?</button>
                 </span>
@@ -484,6 +555,31 @@
          */
 
         /**
+         * @typedef {Object} ArbitrageTicker
+         * @property {string} exchange
+         * @property {string} symbol
+         * @property {number} price
+         */
+
+        /**
+         * @typedef {Object} ArbitrageOpportunity
+         * @property {string} symbol
+         * @property {string} buy_exchange
+         * @property {string} sell_exchange
+         * @property {number} buy_price
+         * @property {number} sell_price
+         * @property {number} spread_abs
+         * @property {number} spread_pct
+         */
+
+        /**
+         * @typedef {Object} ArbitrageResponse
+         * @property {string} symbol
+         * @property {ArbitrageTicker[]} tickers
+         * @property {ArbitrageOpportunity | null} opportunity
+         */
+
+        /**
          * @typedef {Object} ApiResponse
          * @property {string} symbol
          * @property {Candle[]} candles
@@ -546,6 +642,10 @@
                     chartContainer: document.getElementById('chart-container'),
                     fearGreedValue: document.getElementById('fg-value'),
                     fearGreedLabel: document.getElementById('fg-label'),
+                    arbitrage: {
+                        summary: document.getElementById('arb-summary'),
+                        tableBody: document.getElementById('arb-table-body'),
+                    },
                     legends: {
                         bbUpper: document.getElementById('legend-bb-upper'),
                         bbLower: document.getElementById('legend-bb-lower'),
@@ -908,9 +1008,83 @@
                     if (data?.candles?.length > 0) {
                         this.renderUI(data);
                     }
+
+                    // Арбитраж не критичен для отображения графиков, поэтому
+                    // обрабатываем его отдельно и не даём ошибкам ломать UI.
+                    await this.updateArbitrage();
                 } catch (error) {
                     console.error("[App Error]:", error);
                 }
+            }
+
+            /**
+             * Обновление виджета арбитража для текущего символа.
+             */
+            async updateArbitrage() {
+                if (!this.elements.arbitrage?.summary || !this.elements.arbitrage?.tableBody) {
+                    return;
+                }
+                const summaryEl = this.elements.arbitrage.summary;
+                const tbody = this.elements.arbitrage.tableBody;
+
+                try {
+                    const resp = await fetch(`/api/v1/arbitrage/${this.state.currentSymbol}?cache_bust=${Date.now()}`);
+                    if (!resp.ok) {
+                        throw new Error(`HTTP Error: ${resp.status}`);
+                    }
+
+                    /** @type {ArbitrageResponse} */
+                    const data = await resp.json();
+                    this.renderArbitrage(data);
+                } catch (error) {
+                    console.error("[Arbitrage Error]:", error);
+                    summaryEl.textContent = 'Ошибка загрузки';
+                    tbody.innerHTML = '';
+                }
+            }
+
+            /**
+             * Отрисовка арбитражного виджета.
+             * @param {ArbitrageResponse} data 
+             */
+            renderArbitrage(data) {
+                const summaryEl = this.elements.arbitrage?.summary;
+                const tbody = this.elements.arbitrage?.tableBody;
+                if (!summaryEl || !tbody) return;
+
+                tbody.innerHTML = '';
+
+                const tickers = Array.isArray(data?.tickers) ? [...data.tickers] : [];
+                if (tickers.length === 0) {
+                    summaryEl.textContent = 'Нет данных по ценам бирж';
+                    return;
+                }
+
+                // Сортируем биржи по цене для удобства чтения.
+                tickers.sort((a, b) => a.price - b.price);
+
+                for (const t of tickers) {
+                    const tr = document.createElement('tr');
+                    const tdExchange = document.createElement('td');
+                    const tdPrice = document.createElement('td');
+
+                    tdExchange.textContent = t.exchange.toUpperCase();
+                    tdPrice.textContent = this.formatter.format(t.price);
+
+                    tr.appendChild(tdExchange);
+                    tr.appendChild(tdPrice);
+                    tbody.appendChild(tr);
+                }
+
+                const opp = data.opportunity;
+                if (!opp) {
+                    summaryEl.textContent = 'Нет выгодного арбитража (спред < порога)';
+                    return;
+                }
+
+                const spreadStr = `${opp.spread_pct.toFixed(3)}%`;
+                const moneyStr = this.formatter.format(opp.spread_abs);
+                summaryEl.textContent = `Купить на ${opp.buy_exchange.toUpperCase()}, продать на ${opp.sell_exchange.toUpperCase()} · +${spreadStr} (${moneyStr})`;
             }
 
             /**
