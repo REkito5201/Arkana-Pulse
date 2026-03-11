@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.redis import redis_client
@@ -11,6 +12,7 @@ from app.engine.collectors import ExchangeCollector
 from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
 from app.engine.arbitrage import ArbitrageService
+from app.engine.whales import WhaleAddress, WhaleTrackerService
 
 router = APIRouter(
     dependencies=[Depends(enforce_api_key), Depends(rate_limit)],
@@ -211,3 +213,73 @@ async def get_arbitrage_opportunity(
     """
     service = ArbitrageService()
     return await service.scan_symbol(symbol, min_spread_pct=min_spread_pct)
+
+
+class WhaleAddressIn(BaseModel):
+    """Входная модель для добавления/обновления адреса кита."""
+
+    address: str
+    chain: str
+    label: str | None = None
+
+
+@router.get("/whales/addresses")
+async def get_whale_addresses() -> dict[str, Any]:
+    """Возвращает список отслеживаемых адресов китов."""
+    service = WhaleTrackerService()
+    addresses = await service.list_addresses()
+    return {
+        "items": [
+            {
+                "address": a.address,
+                "chain": a.chain,
+                "label": a.label,
+            }
+            for a in addresses
+        ]
+    }
+
+
+@router.post("/whales/addresses")
+async def add_whale_address(payload: WhaleAddressIn) -> dict[str, Any]:
+    """
+    Добавляет новый адрес кита к отслеживанию.
+
+    Эндпоинт защищён общим API‑ключом и rate‑лимитом роутера.
+    """
+    service = WhaleTrackerService()
+    addr = WhaleAddress(
+        address=payload.address,
+        chain=payload.chain,
+        label=payload.label,
+    )
+    await service.add_address(addr)
+    return {"status": "ok"}
+
+
+@router.get("/whales/events")
+async def get_whale_events(limit: int = 50) -> dict[str, Any]:
+    """
+    Возвращает последние события по кошелькам китов.
+
+    limit: сколько последних событий вернуть (1..WhaleTrackerService.MAX_EVENTS).
+    """
+    service = WhaleTrackerService()
+    events = await service.get_recent_events(limit=limit)
+    return {
+        "items": [
+            {
+                "tx_hash": e.tx_hash,
+                "address": e.address,
+                "chain": e.chain,
+                "direction": e.direction,
+                "token_symbol": e.token_symbol,
+                "token_address": e.token_address,
+                "amount": e.amount,
+                "amount_usd": e.amount_usd,
+                "timestamp": e.timestamp,
+                "label": e.label,
+            }
+            for e in events
+        ]
+    }
