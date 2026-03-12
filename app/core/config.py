@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     BINANCE_API_KEY: str | None = None
     BINANCE_API_SECRET: SecretStr | None = None
 
+    # --- Внешний API для кошельков китов ---
+    WHALE_API_URL: str | None = None
+    WHALE_API_KEY: SecretStr | None = None
+    WHALE_MIN_USD: float = 100_000.0
+    WHALE_POLL_INTERVAL_SECONDS: int = 60
+
     # --- Базы данных ---
     REDIS_URL: str = "redis://localhost:6379/0"
 
