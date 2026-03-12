@@ -13,6 +13,7 @@ from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
 from app.engine.arbitrage import ArbitrageService
 from app.engine.whales import WhaleAddress, WhaleTrackerService
+from app.engine.defi_liquidity import DefiLiquidityService
 
 router = APIRouter(
     dependencies=[Depends(enforce_api_key), Depends(rate_limit)],
@@ -282,4 +283,45 @@ async def get_whale_events(limit: int = 50) -> dict[str, Any]:
             }
             for e in events
         ]
+    }
+
+
+@router.get("/defi/liquidity")
+async def get_defi_liquidity(
+    symbol: str,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """
+    Возвращает базовую информацию о ликвидности DeFi для указанного токена.
+
+    symbol: тикер (BTC, ETH, TON) или адрес токена/пары. Под капотом используется
+    публичный API Dexscreener /search, поэтому поддерживаются оба варианта.
+    """
+    service = DefiLiquidityService()
+    # Нормализуем символ: обрезаем общие суффиксы вида USDT/USDC, если пользователь
+    # передал торговую пару вроде BTCUSDT. Это best‑effort эвристика.
+    base_query = symbol.upper()
+    for suffix in ("USDT", "USDC", "USD"):
+        if base_query.endswith(suffix) and len(base_query) > len(suffix):
+            base_query = base_query[: -len(suffix)]
+            break
+
+    pools = await service.search_pools(base_query, limit=limit)
+    return {
+        "query": base_query,
+        "pools": [
+            {
+                "chain": p.chain,
+                "dex": p.dex,
+                "pair_address": p.pair_address,
+                "base_symbol": p.base_symbol,
+                "base_address": p.base_address,
+                "quote_symbol": p.quote_symbol,
+                "quote_address": p.quote_address,
+                "price_usd": p.price_usd,
+                "liquidity_usd": p.liquidity_usd,
+                "volume24h_usd": p.volume24h_usd,
+            }
+            for p in pools
+        ],
     }

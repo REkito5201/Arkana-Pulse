@@ -240,6 +240,18 @@
             font-size: 0.75rem;
         }
 
+        /* DeFi Liquidity виджет */
+        .defi-content {
+            padding: 10px 14px 14px;
+            font-size: 0.8rem;
+        }
+
+        .defi-summary {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
         .info-badge-pill {
             padding: 2px 8px;
             border-radius: 999px;
@@ -485,6 +497,33 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
+                    DeFi Liquidity · Top Pools
+                </span>
+            </header>
+            <div class="defi-content">
+                <div class="defi-summary" id="defi-summary">
+                    Нет данных по ликвидности DeFi.
+                </div>
+                <table class="arbitrage-table">
+                    <thead>
+                        <tr>
+                            <th>Сеть</th>
+                            <th>DEX</th>
+                            <th>Пара</th>
+                            <th>Цена</th>
+                            <th>Liquidity</th>
+                            <th>24h Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody id="defi-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="chart-panel">
+            <header class="chart-panel-header">
+                <span class="chart-panel-title">
                     RSI · Momentum
                     <button class="def-icon" type="button" data-def="rsi">?</button>
                 </span>
@@ -638,6 +677,26 @@
          */
 
         /**
+         * @typedef {Object} DefiPoolDto
+         * @property {string} chain
+         * @property {string} dex
+         * @property {string} pair_address
+         * @property {string} base_symbol
+         * @property {string} base_address
+         * @property {string} quote_symbol
+         * @property {string} quote_address
+         * @property {number} price_usd
+         * @property {number} liquidity_usd
+         * @property {number} volume24h_usd
+         */
+
+        /**
+         * @typedef {Object} DefiLiquidityResponse
+         * @property {string} query
+         * @property {DefiPoolDto[]} pools
+         */
+
+        /**
          * @typedef {Object} ApiResponse
          * @property {string} symbol
          * @property {Candle[]} candles
@@ -707,6 +766,10 @@
                     whales: {
                         summary: document.getElementById('whales-summary'),
                         tableBody: document.getElementById('whales-table-body'),
+                    },
+                    defi: {
+                        summary: document.getElementById('defi-summary'),
+                        tableBody: document.getElementById('defi-table-body'),
                     },
                     legends: {
                         bbUpper: document.getElementById('legend-bb-upper'),
@@ -1083,6 +1146,8 @@
                     await this.updateArbitrage();
                     // Аналогично для активности китов: читаем её отдельно.
                     await this.updateWhales();
+                    // И для DeFi ликвидности по текущему активу.
+                    await this.updateDefiLiquidity();
                 } catch (error) {
                     console.error("[App Error]:", error);
                 }
@@ -1191,6 +1256,93 @@
                     tr.appendChild(tdToken);
                     tr.appendChild(tdAmount);
                     tr.appendChild(tdUsd);
+
+                    tbody.appendChild(tr);
+                }
+            }
+
+            /**
+             * Обновление виджета ликвидности DeFi.
+             */
+            async updateDefiLiquidity() {
+                if (!this.elements.defi?.summary || !this.elements.defi?.tableBody) {
+                    return;
+                }
+                const summaryEl = this.elements.defi.summary;
+                const tbody = this.elements.defi.tableBody;
+
+                // Берём базовый символ без суффиксов USDT/USDC/USD, чтобы
+                // согласовать его с контрактом бекенда.
+                const raw = this.state.currentSymbol || 'BTCUSDT';
+                const base = raw.toUpperCase().replace(/(USDT|USDC|USD)$/, '') || raw.toUpperCase();
+
+                try {
+                    const resp = await fetch(`/api/v1/defi/liquidity?symbol=${encodeURIComponent(base)}&limit=10&cache_bust=${Date.now()}`);
+                    if (!resp.ok) {
+                        throw new Error(`HTTP Error: ${resp.status}`);
+                    }
+
+                    /** @type {DefiLiquidityResponse} */
+                    const data = await resp.json();
+                    this.renderDefiLiquidity(data);
+                } catch (error) {
+                    console.error("[DeFi Error]:", error);
+                    summaryEl.textContent = 'Ошибка загрузки ликвидности DeFi';
+                    tbody.innerHTML = '';
+                }
+            }
+
+            /**
+             * Отрисовка виджета ликвидности DeFi.
+             * @param {DefiLiquidityResponse} data
+             */
+            renderDefiLiquidity(data) {
+                const summaryEl = this.elements.defi?.summary;
+                const tbody = this.elements.defi?.tableBody;
+                if (!summaryEl || !tbody) return;
+
+                tbody.innerHTML = '';
+
+                const pools = Array.isArray(data?.pools) ? data.pools : [];
+                if (pools.length === 0) {
+                    summaryEl.textContent = `Нет пулов ликвидности по запросу "${data?.query || ''}".`;
+                    return;
+                }
+
+                summaryEl.textContent = `Top ${pools.length} DeFi пулов для "${data.query}".`;
+
+                for (const p of pools) {
+                    const tr = document.createElement('tr');
+
+                    const tdChain = document.createElement('td');
+                    const tdDex = document.createElement('td');
+                    const tdPair = document.createElement('td');
+                    const tdPrice = document.createElement('td');
+                    const tdLiq = document.createElement('td');
+                    const tdVol = document.createElement('td');
+
+                    tdChain.textContent = p.chain.toUpperCase();
+                    tdDex.textContent = p.dex.toUpperCase();
+                    tdPair.textContent = `${p.base_symbol}/${p.quote_symbol}`;
+
+                    tdPrice.textContent = p.price_usd
+                        ? this.formatter.format(p.price_usd)
+                        : '—';
+
+                    tdLiq.textContent = p.liquidity_usd
+                        ? this.formatter.format(p.liquidity_usd)
+                        : '—';
+
+                    tdVol.textContent = p.volume24h_usd
+                        ? this.formatter.format(p.volume24h_usd)
+                        : '—';
+
+                    tr.appendChild(tdChain);
+                    tr.appendChild(tdDex);
+                    tr.appendChild(tdPair);
+                    tr.appendChild(tdPrice);
+                    tr.appendChild(tdLiq);
+                    tr.appendChild(tdVol);
 
                     tbody.appendChild(tr);
                 }
