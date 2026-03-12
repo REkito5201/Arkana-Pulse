@@ -808,29 +808,36 @@
                 this.bbMiddle = this.priceChart.addLineSeries({ ...bbOptions, color: 'rgba(255, 255, 255, 0.6)', lineStyle: 2 });
                 this.bbLower = this.priceChart.addLineSeries({ ...bbOptions, color: this.CONFIG.COLORS.bbLine });
 
-                // Ichimoku lines & cloud
+                // Ichimoku: только линии (без цветной заливки)
+                const ichiOptions = { lineWidth: 1, lastValueVisible: false, priceLineVisible: false };
+
+                // Tenkan — быстрая линия, сплошная и чуть толще
                 this.ichiConversion = this.priceChart.addLineSeries({
+                    ...ichiOptions,
                     color: this.CONFIG.COLORS.ichiConversion,
-                    lineWidth: 1,
+                    lineWidth: 1.5,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
                 });
 
+                // Kijun — базовая сплошная линия
                 this.ichiBase = this.priceChart.addLineSeries({
+                    ...ichiOptions,
                     color: this.CONFIG.COLORS.ichiBase,
-                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
                 });
 
-                this.ichiSpanA = this.priceChart.addAreaSeries({
-                    topColor: 'rgba(76, 175, 80, 0.25)',
-                    bottomColor: 'rgba(76, 175, 80, 0.0)',
-                    lineColor: this.CONFIG.COLORS.ichiSpanA,
-                    lineWidth: 1,
+                // Span A — пунктирная линия облака
+                this.ichiSpanA = this.priceChart.addLineSeries({
+                    ...ichiOptions,
+                    color: this.CONFIG.COLORS.ichiSpanA,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
                 });
 
-                this.ichiSpanB = this.priceChart.addAreaSeries({
-                    topColor: 'rgba(244, 67, 54, 0.25)',
-                    bottomColor: 'rgba(244, 67, 54, 0.0)',
-                    lineColor: this.CONFIG.COLORS.ichiSpanB,
-                    lineWidth: 1,
+                // Span B — более «редкий» пунктир
+                this.ichiSpanB = this.priceChart.addLineSeries({
+                    ...ichiOptions,
+                    color: this.CONFIG.COLORS.ichiSpanB,
+                    lineStyle: LightweightCharts.LineStyle.SparseDotted,
                 });
 
                 // --- RSI ---
