@@ -200,6 +200,9 @@ async def get_crypto_signal(symbol: str = Depends(validate_symbol)) -> dict[str,
     return scanner.get_signal(df)
 
 
+ARBITRAGE_CACHE_KEY_PREFIX = "arbitrage:"
+
+
 @router.get("/arbitrage/{symbol}")
 async def get_arbitrage_opportunity(
     symbol: str = Depends(validate_symbol),
@@ -208,12 +211,46 @@ async def get_arbitrage_opportunity(
     """
     Простой поиск кросс‑биржевого арбитража для одной пары.
 
+    Результат кэшируется в Redis на ARBITRAGE_CACHE_TTL_SECONDS секунд,
+    чтобы снизить нагрузку на биржи и ускорить повторные запросы.
+
     min_spread_pct: минимальный процент спреда, при котором возможность
-    считается интересной. По умолчанию 0.1% — консервативное значение,
-    которое можно переопределить параметром запроса.
+    считается интересной. По умолчанию 0.1%. Фильтр применяется к закэшированным
+    данным, без повторного запроса к биржам.
     """
+    cache_key = f"{ARBITRAGE_CACHE_KEY_PREFIX}{symbol}"
+    ttl = max(10, getattr(settings, "ARBITRAGE_CACHE_TTL_SECONDS", 60))
+
+    cached_raw = await redis_client.get(cache_key)
+    if cached_raw:
+        try:
+            data = json.loads(cached_raw)
+        except (json.JSONDecodeError, TypeError):
+            data = None
+        if isinstance(data, dict) and "tickers" in data:
+            opp = data.get("opportunity")
+            if (
+                min_spread_pct > 0
+                and opp is not None
+                and isinstance(opp, dict)
+                and (opp.get("spread_pct") or 0) < min_spread_pct
+            ):
+                data = {**data, "opportunity": None}
+            return data
+
     service = ArbitrageService()
-    return await service.scan_symbol(symbol, min_spread_pct=min_spread_pct)
+    result = await service.scan_symbol(symbol, min_spread_pct=0)
+    await redis_client.setex(cache_key, ttl, json.dumps(result))
+
+    opp = result.get("opportunity")
+    if (
+        min_spread_pct > 0
+        and opp is not None
+        and isinstance(opp, dict)
+        and (opp.get("spread_pct") or 0) < min_spread_pct
+    ):
+        result = {**result, "opportunity": None}
+    return result
 
 
 class WhaleAddressIn(BaseModel):

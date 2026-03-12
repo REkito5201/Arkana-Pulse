@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     WHALE_MIN_USD: float = 100_000.0
     WHALE_POLL_INTERVAL_SECONDS: int = 60
 
+    # --- Арбитраж: кэш в Redis ---
+    ARBITRAGE_CACHE_TTL_SECONDS: int = 60
+
     # --- Базы данных ---
     REDIS_URL: str = "redis://localhost:6379/0"
 
