@@ -221,11 +221,14 @@
         .arbitrage-controls__select {
             padding: 4px 8px;
             border-radius: 6px;
-            background: var(--bg-input);
+            background-color: var(--bg-input);
             color: var(--text-main);
             border: 1px solid var(--border-color);
             font-size: 0.8rem;
             cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
         }
 
         .arbitrage-table {
@@ -272,6 +275,42 @@
             margin-bottom: 8px;
             color: var(--text-muted);
             font-size: 0.75rem;
+        }
+
+        .defi-filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 16px;
+            margin-bottom: 8px;
+        }
+
+        .defi-filters__group {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .defi-filters__label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .defi-filters__select {
+            padding: 4px 8px;
+            border-radius: 6px;
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .defi-row--low-liquidity {
+            background: rgba(239, 83, 80, 0.06);
         }
 
         .info-badge-pill {
@@ -535,6 +574,20 @@
                 <div class="defi-summary" id="defi-summary">
                     Нет данных по ликвидности DeFi.
                 </div>
+                <div class="defi-filters">
+                    <div class="defi-filters__group">
+                        <label for="defi-chain-filter" class="defi-filters__label">Сеть</label>
+                        <select id="defi-chain-filter" class="defi-filters__select" aria-label="Фильтр по сети DeFi">
+                            <option value="ALL">Все</option>
+                        </select>
+                    </div>
+                    <div class="defi-filters__group">
+                        <label for="defi-dex-filter" class="defi-filters__label">DEX</label>
+                        <select id="defi-dex-filter" class="defi-filters__select" aria-label="Фильтр по DEX">
+                            <option value="ALL">Все</option>
+                        </select>
+                    </div>
+                </div>
                 <table class="arbitrage-table">
                     <thead>
                         <tr>
@@ -779,6 +832,12 @@
                     lastData: null,
                     lastIndex: null,
                     minArbSpreadPct: 0.1,
+                    defiFilters: {
+                        chain: 'ALL',
+                        dex: 'ALL',
+                        minLiquidityUsd: 100000,
+                    },
+                    defiRaw: null,
                 };
 
                 // Ссылки на DOM-элементы
@@ -803,6 +862,8 @@
                     defi: {
                         summary: document.getElementById('defi-summary'),
                         tableBody: document.getElementById('defi-table-body'),
+                        chainFilter: document.getElementById('defi-chain-filter'),
+                        dexFilter: document.getElementById('defi-dex-filter'),
                     },
                     legends: {
                         bbUpper: document.getElementById('legend-bb-upper'),
@@ -1318,6 +1379,7 @@
 
                     /** @type {DefiLiquidityResponse} */
                     const data = await resp.json();
+                    this.state.defiRaw = data;
                     this.renderDefiLiquidity(data);
                 } catch (error) {
                     console.error("[DeFi Error]:", error);
@@ -1343,9 +1405,54 @@
                     return;
                 }
 
-                summaryEl.textContent = `Top ${pools.length} DeFi пулов для "${data.query}".`;
+                // Наполняем фильтры на основе пришедших данных.
+                const chainSelect = this.elements.defi?.chainFilter;
+                const dexSelect = this.elements.defi?.dexFilter;
+                const filters = this.state.defiFilters || { chain: 'ALL', dex: 'ALL', minLiquidityUsd: 100000 };
 
-                for (const p of pools) {
+                const uniqueChains = Array.from(new Set(pools.map((p) => String(p.chain || '').toUpperCase()))).filter(Boolean);
+                const uniqueDexes = Array.from(new Set(pools.map((p) => String(p.dex || '').toUpperCase()))).filter(Boolean);
+
+                if (chainSelect) {
+                    const current = filters.chain || 'ALL';
+                    chainSelect.innerHTML = '<option value=\"ALL\">Все</option>' + uniqueChains
+                        .map((c) => `<option value=\"${c}\">${c}</option>`)
+                        .join('');
+                    if (current && (current === 'ALL' || uniqueChains.includes(current))) {
+                        chainSelect.value = current;
+                    } else {
+                        this.state.defiFilters.chain = 'ALL';
+                        chainSelect.value = 'ALL';
+                    }
+                }
+
+                if (dexSelect) {
+                    const currentDex = filters.dex || 'ALL';
+                    dexSelect.innerHTML = '<option value=\"ALL\">Все</option>' + uniqueDexes
+                        .map((d) => `<option value=\"${d}\">${d}</option>`)
+                        .join('');
+                    if (currentDex && (currentDex === 'ALL' || uniqueDexes.includes(currentDex))) {
+                        dexSelect.value = currentDex;
+                    } else {
+                        this.state.defiFilters.dex = 'ALL';
+                        dexSelect.value = 'ALL';
+                    }
+                }
+
+                const visiblePools = pools.filter((p) => {
+                    const chain = String(p.chain || '').toUpperCase();
+                    const dex = String(p.dex || '').toUpperCase();
+                    return (filters.chain === 'ALL' || chain === filters.chain)
+                        && (filters.dex === 'ALL' || dex === filters.dex);
+                });
+
+                const total = pools.length;
+                const visible = visiblePools.length;
+                summaryEl.textContent = `Top ${visible} / ${total} DeFi пулов для \"${data.query}\".`;
+
+                const liqThreshold = Number(filters.minLiquidityUsd) || 100000;
+
+                for (const p of visiblePools) {
                     const tr = document.createElement('tr');
 
                     const tdChain = document.createElement('td');
@@ -1355,9 +1462,18 @@
                     const tdLiq = document.createElement('td');
                     const tdVol = document.createElement('td');
 
-                    tdChain.textContent = p.chain.toUpperCase();
-                    tdDex.textContent = p.dex.toUpperCase();
-                    tdPair.textContent = `${p.base_symbol}/${p.quote_symbol}`;
+                    const chainValue = String(p.chain || '').toUpperCase();
+                    const dexValue = String(p.dex || '').toUpperCase();
+
+                    tdChain.textContent = chainValue;
+                    tdDex.textContent = dexValue;
+
+                    const pairLink = document.createElement('a');
+                    pairLink.textContent = `${p.base_symbol}/${p.quote_symbol}`;
+                    pairLink.href = `https://dexscreener.com/${p.chain}/${p.pair_address}`;
+                    pairLink.target = '_blank';
+                    pairLink.rel = 'noopener noreferrer';
+                    tdPair.appendChild(pairLink);
 
                     tdPrice.textContent = p.price_usd
                         ? this.formatter.format(p.price_usd)
@@ -1377,6 +1493,10 @@
                     tr.appendChild(tdPrice);
                     tr.appendChild(tdLiq);
                     tr.appendChild(tdVol);
+
+                    if (p.liquidity_usd && p.liquidity_usd < liqThreshold) {
+                        tr.classList.add('defi-row--low-liquidity');
+                    }
 
                     tbody.appendChild(tr);
                 }
@@ -1645,6 +1765,28 @@
                         applySymbol(value);
                     }
                 });
+
+                const chainFilter = this.elements.defi?.chainFilter;
+                if (chainFilter) {
+                    chainFilter.addEventListener('change', () => {
+                        const val = String(chainFilter.value || 'ALL').toUpperCase();
+                        this.state.defiFilters.chain = val;
+                        if (this.state.defiRaw) {
+                            this.renderDefiLiquidity(this.state.defiRaw);
+                        }
+                    });
+                }
+
+                const dexFilter = this.elements.defi?.dexFilter;
+                if (dexFilter) {
+                    dexFilter.addEventListener('change', () => {
+                        const val = String(dexFilter.value || 'ALL').toUpperCase();
+                        this.state.defiFilters.dex = val;
+                        if (this.state.defiRaw) {
+                            this.renderDefiLiquidity(this.state.defiRaw);
+                        }
+                    });
+                }
 
                 const arbSpreadSelect = this.elements.arbitrage?.spreadSelect;
                 if (arbSpreadSelect) {
