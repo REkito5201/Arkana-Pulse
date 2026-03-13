@@ -587,6 +587,16 @@
                             <option value="ALL">Все</option>
                         </select>
                     </div>
+                    <div class="defi-filters__group">
+                        <label for="defi-tvl-filter" class="defi-filters__label">Мин. TVL</label>
+                        <select id="defi-tvl-filter" class="defi-filters__select" aria-label="Фильтр по минимальному TVL">
+                            <option value="0">Все</option>
+                            <option value="50000">$50k</option>
+                            <option value="100000" selected>$100k</option>
+                            <option value="250000">$250k</option>
+                            <option value="1000000">$1M</option>
+                        </select>
+                    </div>
                 </div>
                 <table class="arbitrage-table">
                     <thead>
@@ -864,6 +874,7 @@
                         tableBody: document.getElementById('defi-table-body'),
                         chainFilter: document.getElementById('defi-chain-filter'),
                         dexFilter: document.getElementById('defi-dex-filter'),
+                        tvlFilter: document.getElementById('defi-tvl-filter'),
                     },
                     legends: {
                         bbUpper: document.getElementById('legend-bb-upper'),
@@ -1782,6 +1793,17 @@
                     dexFilter.addEventListener('change', () => {
                         const val = String(dexFilter.value || 'ALL').toUpperCase();
                         this.state.defiFilters.dex = val;
+                        if (this.state.defiRaw) {
+                            this.renderDefiLiquidity(this.state.defiRaw);
+                        }
+                    });
+                }
+
+                const tvlFilter = this.elements.defi?.tvlFilter;
+                if (tvlFilter) {
+                    tvlFilter.addEventListener('change', () => {
+                        const val = Number(tvlFilter.value);
+                        this.state.defiFilters.minLiquidityUsd = Number.isFinite(val) && val >= 0 ? val : 0;
                         if (this.state.defiRaw) {
                             this.renderDefiLiquidity(this.state.defiRaw);
                         }
