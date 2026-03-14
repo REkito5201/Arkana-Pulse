@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # --- Внешний API для кошельков китов ---
     WHALE_API_URL: str | None = None
     WHALE_API_KEY: SecretStr | None = None
+    # Whale Alert (leviathan.whale-alert.io): если задан, воркер использует его вместо WHALE_API_URL
+    WHALE_ALERT_API_KEY: SecretStr | None = None
     WHALE_MIN_USD: float = 100_000.0
     WHALE_POLL_INTERVAL_SECONDS: int = 60
 
@@ -70,7 +72,7 @@ class Settings(BaseSettings):
     def resolve_secret_files(self) -> "Settings":
         """Подставляет секреты из файлов, если заданы переменные *_FILE (Docker secrets)."""
         file_suffix = "_FILE"
-        for name in ("BOT_TOKEN", "API_KEY", "BINANCE_API_SECRET"):
+        for name in ("BOT_TOKEN", "API_KEY", "BINANCE_API_SECRET", "WHALE_ALERT_API_KEY"):
             file_env = os.environ.get(f"{name}{file_suffix}")
             if not file_env or not Path(file_env).is_file():
                 continue
@@ -83,6 +85,8 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "API_KEY", SecretStr(value))
             elif name == "BINANCE_API_SECRET":
                 object.__setattr__(self, "BINANCE_API_SECRET", SecretStr(value))
+            elif name == "WHALE_ALERT_API_KEY":
+                object.__setattr__(self, "WHALE_ALERT_API_KEY", SecretStr(value))
         return self
 
 

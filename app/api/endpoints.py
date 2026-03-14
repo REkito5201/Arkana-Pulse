@@ -296,14 +296,36 @@ async def add_whale_address(payload: WhaleAddressIn) -> dict[str, Any]:
 
 
 @router.get("/whales/events")
-async def get_whale_events(limit: int = 50) -> dict[str, Any]:
+async def get_whale_events(
+    limit: int = 50,
+    direction: str | None = None,
+    chain: str | None = None,
+    min_usd: float | None = None,
+    symbol: str | None = None,
+) -> dict[str, Any]:
     """
-    Возвращает последние события по кошелькам китов.
+    Возвращает последние события по кошелькам китов с опциональной фильтрацией.
 
-    limit: сколько последних событий вернуть (1..WhaleTrackerService.MAX_EVENTS).
+    - limit: сколько событий вернуть (1..MAX_EVENTS).
+    - direction: "in" | "out" — только входящие или исходящие; без параметра — все.
+    - chain: фильтр по сети (например ethereum, bitcoin).
+    - min_usd: минимальный объём в USD.
+    - symbol: фильтр по тикеру токена (например USDT, ETH).
     """
     service = WhaleTrackerService()
-    events = await service.get_recent_events(limit=limit)
+    cap = min(max(1, limit), service.MAX_EVENTS)
+    events = await service.get_recent_events(limit=service.MAX_EVENTS)
+    if direction and direction.lower() in ("in", "out"):
+        events = [e for e in events if e.direction == direction.lower()]
+    if chain and chain.strip():
+        chain_lo = chain.strip().lower()
+        events = [e for e in events if (e.chain or "").lower() == chain_lo]
+    if min_usd is not None and min_usd > 0:
+        events = [e for e in events if e.amount_usd >= min_usd]
+    if symbol and symbol.strip():
+        sym_lo = symbol.strip().upper()
+        events = [e for e in events if (e.token_symbol or "").upper() == sym_lo]
+    events = events[:cap]
     return {
         "items": [
             {

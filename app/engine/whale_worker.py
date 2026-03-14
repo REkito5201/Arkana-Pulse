@@ -1,11 +1,12 @@
 import asyncio
 import logging
-from typing import Iterable, List
+from typing import Iterable, List, Union
 
 import aiohttp
 
 from app.core.config import settings
 from app.engine.whales import WhaleAddress, WhaleEvent, WhaleTrackerService, WhaleDirection
+from app.engine.whale_alert import WhaleAlertClient
 
 
 logger = logging.getLogger(__name__)
@@ -118,8 +119,11 @@ class WhaleApiClient:
         return events
 
 
-async def poll_whales_once(service: WhaleTrackerService, client: WhaleApiClient) -> None:
-    """Один цикл опроса всех отслеживаемых адресов."""
+async def poll_whales_once(
+    service: WhaleTrackerService,
+    client: Union[WhaleApiClient, WhaleAlertClient],
+) -> None:
+    """Один цикл опроса всех отслеживаемых адресов (custom API или Whale Alert)."""
     addresses: Iterable[WhaleAddress] = await service.list_addresses()
     addresses = list(addresses)
 
@@ -142,17 +146,30 @@ async def run_forever() -> None:
     """
     Основной цикл воркера.
 
-    Безопасно оборачивает каждый проход опроса, чтобы единичная ошибка не убивала процесс.
+    Если задан WHALE_ALERT_API_KEY — используется Whale Alert REST API.
+    Иначе — кастомный провайдер по WHALE_API_URL (и опционально WHALE_API_KEY).
     Интервал опроса задаётся через WHALE_POLL_INTERVAL_SECONDS.
     """
     service = WhaleTrackerService()
-    api_key = settings.WHALE_API_KEY.get_secret_value() if settings.WHALE_API_KEY else None
-    client = WhaleApiClient(
-        base_url=settings.WHALE_API_URL,
-        api_key=api_key,
-        timeout=5.0,
+    whale_alert_key = (
+        settings.WHALE_ALERT_API_KEY.get_secret_value()
+        if settings.WHALE_ALERT_API_KEY
+        else None
     )
-
+    if whale_alert_key:
+        client: Union[WhaleApiClient, WhaleAlertClient] = WhaleAlertClient(
+            api_key=whale_alert_key,
+            timeout=10.0,
+        )
+        logger.info("Whale worker using Whale Alert provider")
+    else:
+        api_key = settings.WHALE_API_KEY.get_secret_value() if settings.WHALE_API_KEY else None
+        client = WhaleApiClient(
+            base_url=settings.WHALE_API_URL,
+            api_key=api_key,
+            timeout=5.0,
+        )
+        logger.info("Whale worker using custom WHALE_API_URL provider")
     interval = max(10, int(settings.WHALE_POLL_INTERVAL_SECONDS))
     logger.info("Starting whale worker with interval %s seconds", interval)
 

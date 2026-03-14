@@ -81,7 +81,12 @@
             padding: 0 16px 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 16px;
+        }
+
+        .chart-panel-title__icon {
+            margin-right: 6px;
+            opacity: 0.9;
         }
 
         .chart-panel {
@@ -443,7 +448,7 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    Price · Bollinger Bands / Ichimoku
+                    <span class="chart-panel-title__icon" aria-hidden="true">💹</span>Price · Bollinger Bands / Ichimoku
                     <button class="def-icon" type="button" data-def="bb">?</button>
                     <button class="def-icon" type="button" data-def="ichimoku">?</button>
                 </span>
@@ -507,7 +512,7 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    Arbitrage · Cross-Exchange
+                    <span class="chart-panel-title__icon" aria-hidden="true">⚖</span>Arbitrage · Cross-Exchange
                 </span>
             </header>
             <div class="arbitrage-content">
@@ -527,8 +532,8 @@
                 <table class="arbitrage-table">
                     <thead>
                         <tr>
-                            <th>Биржа</th>
-                            <th>Цена</th>
+                            <th title="Биржа, на которой отображается цена">Биржа</th>
+                            <th title="Последняя цена по торговой паре">Цена</th>
                         </tr>
                     </thead>
                     <tbody id="arb-table-body">
@@ -540,22 +545,58 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    Whale Activity · Large Flows
+                    <span class="chart-panel-title__icon" aria-hidden="true">🐋</span>Whale Activity · Large Flows
                 </span>
             </header>
             <div class="whales-content">
                 <div class="whales-summary" id="whales-summary">
                     Нет данных по активности китов.
                 </div>
+                <div class="defi-filters">
+                    <div class="defi-filters__group">
+                        <label for="whales-direction-filter" class="defi-filters__label">Направление</label>
+                        <select id="whales-direction-filter" class="defi-filters__select" aria-label="Фильтр: входящие/исходящие">
+                            <option value="">Все</option>
+                            <option value="in">IN →</option>
+                            <option value="out">← OUT</option>
+                        </select>
+                    </div>
+                    <div class="defi-filters__group">
+                        <label for="whales-chain-filter" class="defi-filters__label">Сеть</label>
+                        <select id="whales-chain-filter" class="defi-filters__select" aria-label="Фильтр по сети">
+                            <option value="">Все</option>
+                            <option value="ethereum">Ethereum</option>
+                            <option value="bitcoin">Bitcoin</option>
+                            <option value="tron">Tron</option>
+                            <option value="solana">Solana</option>
+                            <option value="polygon">Polygon</option>
+                            <option value="bnb">BNB Chain</option>
+                        </select>
+                    </div>
+                    <div class="defi-filters__group">
+                        <label for="whales-min-usd-filter" class="defi-filters__label">Мин. USD</label>
+                        <select id="whales-min-usd-filter" class="defi-filters__select" aria-label="Минимальный объём в USD">
+                            <option value="">Все</option>
+                            <option value="100000">$100k</option>
+                            <option value="500000">$500k</option>
+                            <option value="1000000">$1M</option>
+                            <option value="5000000">$5M</option>
+                        </select>
+                    </div>
+                    <div class="defi-filters__group">
+                        <label for="whales-symbol-filter" class="defi-filters__label">Токен</label>
+                        <input type="text" id="whales-symbol-filter" class="defi-filters__select" placeholder="USDT, ETH…" aria-label="Фильтр по тикеру токена" maxlength="20">
+                    </div>
+                </div>
                 <table class="arbitrage-table">
                     <thead>
                         <tr>
-                            <th>Время</th>
-                            <th>Направление</th>
-                            <th>Адрес</th>
-                            <th>Токен</th>
-                            <th>Сумма</th>
-                            <th>USD</th>
+                            <th title="Время транзакции">Время</th>
+                            <th title="IN — поступление на адрес, OUT — вывод">Направление</th>
+                            <th title="Адрес кошелька (сокращённый)">Адрес</th>
+                            <th title="Торговый символ токена">Токен</th>
+                            <th title="Объём в токенах">Сумма</th>
+                            <th title="Эквивалент в долларах США">USD</th>
                         </tr>
                     </thead>
                     <tbody id="whales-table-body">
@@ -567,7 +608,7 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    DeFi Liquidity · Top Pools
+                    <span class="chart-panel-title__icon" aria-hidden="true">🌊</span>DeFi Liquidity · Top Pools
                 </span>
             </header>
             <div class="defi-content">
@@ -601,12 +642,12 @@
                 <table class="arbitrage-table">
                     <thead>
                         <tr>
-                            <th>Сеть</th>
-                            <th>DEX</th>
-                            <th>Пара</th>
-                            <th>Цена</th>
-                            <th>Liquidity</th>
-                            <th>24h Volume</th>
+                            <th title="Блокчейн-сеть пула">Сеть</th>
+                            <th title="Децентрализованная биржа">DEX</th>
+                            <th title="Торговая пара (ссылка на Dexscreener)">Пара</th>
+                            <th title="Текущая цена в пуле">Цена</th>
+                            <th title="Total Value Locked — общий объём ликвидности в пуле (USD)">Liquidity</th>
+                            <th title="Объём торгов за последние 24 часа в USD">24h Volume</th>
                         </tr>
                     </thead>
                     <tbody id="defi-table-body">
@@ -618,7 +659,7 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    RSI · Momentum
+                    <span class="chart-panel-title__icon" aria-hidden="true">📈</span>RSI · Momentum
                     <button class="def-icon" type="button" data-def="rsi">?</button>
                 </span>
                 <div class="chart-legend">
@@ -643,7 +684,7 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    MACD · Trend Strength
+                    <span class="chart-panel-title__icon" aria-hidden="true">📊</span>MACD · Trend Strength
                     <button class="def-icon" type="button" data-def="macd">?</button>
                 </span>
                 <div class="chart-legend">
@@ -868,6 +909,10 @@
                     whales: {
                         summary: document.getElementById('whales-summary'),
                         tableBody: document.getElementById('whales-table-body'),
+                        directionFilter: document.getElementById('whales-direction-filter'),
+                        chainFilter: document.getElementById('whales-chain-filter'),
+                        minUsdFilter: document.getElementById('whales-min-usd-filter'),
+                        symbolFilter: document.getElementById('whales-symbol-filter'),
                     },
                     defi: {
                         summary: document.getElementById('defi-summary'),
@@ -1294,9 +1339,18 @@
                 }
                 const summaryEl = this.elements.whales.summary;
                 const tbody = this.elements.whales.tableBody;
+                const params = new URLSearchParams({ limit: '20', cache_bust: String(Date.now()) });
+                const dir = this.elements.whales.directionFilter?.value?.trim();
+                if (dir) params.set('direction', dir);
+                const chain = this.elements.whales.chainFilter?.value?.trim();
+                if (chain) params.set('chain', chain);
+                const minUsd = this.elements.whales.minUsdFilter?.value?.trim();
+                if (minUsd) params.set('min_usd', minUsd);
+                const symbol = this.elements.whales.symbolFilter?.value?.trim();
+                if (symbol) params.set('symbol', symbol);
 
                 try {
-                    const resp = await fetch(`/api/v1/whales/events?limit=20&cache_bust=${Date.now()}`);
+                    const resp = await fetch(`/api/v1/whales/events?${params.toString()}`);
                     if (!resp.ok) {
                         throw new Error(`HTTP Error: ${resp.status}`);
                     }
@@ -1818,6 +1872,18 @@
                             this.state.minArbSpreadPct = val;
                             this.updateArbitrage();
                         }
+                    });
+                }
+
+                [this.elements.whales?.directionFilter, this.elements.whales?.chainFilter, this.elements.whales?.minUsdFilter].forEach((el) => {
+                    if (el) el.addEventListener('change', () => this.updateWhales());
+                });
+                const whalesSymbolFilter = this.elements.whales?.symbolFilter;
+                if (whalesSymbolFilter) {
+                    whalesSymbolFilter.addEventListener('change', () => this.updateWhales());
+                    whalesSymbolFilter.addEventListener('input', () => {
+                        clearTimeout(this._whalesSymbolInputTimeout);
+                        this._whalesSymbolInputTimeout = setTimeout(() => this.updateWhales(), 400);
                     });
                 }
 
