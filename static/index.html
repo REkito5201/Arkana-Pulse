@@ -308,10 +308,29 @@
             color: var(--text-main);
             border: 1px solid var(--border-color);
             font-size: 0.8rem;
+        }
+        select.defi-filters__select {
             cursor: pointer;
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
+        }
+        input.defi-filters__select,
+        .whales-symbol-input {
+            cursor: text;
+            min-width: 7rem;
+            width: 7rem;
+            display: inline-block;
+            pointer-events: auto;
+            box-sizing: border-box;
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            caret-color: var(--text-main);
+        }
+        .whales-symbol-input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.8;
         }
 
         .defi-row--low-liquidity {
@@ -583,9 +602,9 @@
                             <option value="5000000">$5M</option>
                         </select>
                     </div>
-                    <div class="defi-filters__group">
+                    <div class="defi-filters__group defi-filters__group--token">
                         <label for="whales-symbol-filter" class="defi-filters__label">Токен</label>
-                        <input type="text" id="whales-symbol-filter" class="defi-filters__select" placeholder="USDT, ETH…" aria-label="Фильтр по тикеру токена" maxlength="20">
+                        <input type="text" id="whales-symbol-filter" class="whales-symbol-input" placeholder="USDT, ETH…" aria-label="Фильтр по тикеру токена" maxlength="20" autocomplete="off">
                     </div>
                 </div>
                 <table class="arbitrage-table">
@@ -1357,7 +1376,13 @@
 
                     /** @type {WhalesResponse} */
                     const data = await resp.json();
-                    this.renderWhales(data);
+                    const filters = {
+                        symbol: this.elements.whales.symbolFilter?.value?.trim() || null,
+                        direction: dir || null,
+                        chain: chain || null,
+                        minUsd: minUsd || null,
+                    };
+                    this.renderWhales(data, filters);
                 } catch (error) {
                     console.error("[Whales Error]:", error);
                     summaryEl.textContent = 'Ошибка загрузки активности китов';
@@ -1368,8 +1393,9 @@
             /**
              * Отрисовка виджета активности китов.
              * @param {WhalesResponse} data
+             * @param {{ symbol?: string | null, direction?: string | null, chain?: string | null, minUsd?: string | null }} [filters]
              */
-            renderWhales(data) {
+            renderWhales(data, filters) {
                 const summaryEl = this.elements.whales?.summary;
                 const tbody = this.elements.whales?.tableBody;
                 if (!summaryEl || !tbody) return;
@@ -1378,7 +1404,11 @@
 
                 const items = Array.isArray(data?.items) ? data.items : [];
                 if (items.length === 0) {
-                    summaryEl.textContent = 'Нет свежих крупных перемещений средств.';
+                    if (filters?.symbol) {
+                        summaryEl.textContent = `По токену «${filters.symbol}» записей не найдено. Очистите поле или измените фильтры.`;
+                    } else {
+                        summaryEl.textContent = 'Нет данных по китам. Запустите воркер и добавьте адреса для отслеживания (см. README / конфиг).';
+                    }
                     return;
                 }
 
@@ -1880,6 +1910,14 @@
                 });
                 const whalesSymbolFilter = this.elements.whales?.symbolFilter;
                 if (whalesSymbolFilter) {
+                    // Принудительный фокус по клику/касанию (в WebView/Telegram фокус часто не срабатывает)
+                    const forceFocus = (e) => {
+                        if (e.target === whalesSymbolFilter || e.target.closest('.defi-filters__group--token')) {
+                            whalesSymbolFilter.focus();
+                        }
+                    };
+                    whalesSymbolFilter.addEventListener('mousedown', forceFocus);
+                    whalesSymbolFilter.addEventListener('touchstart', forceFocus, { passive: true });
                     whalesSymbolFilter.addEventListener('change', () => this.updateWhales());
                     whalesSymbolFilter.addEventListener('input', () => {
                         clearTimeout(this._whalesSymbolInputTimeout);

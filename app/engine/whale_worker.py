@@ -6,7 +6,7 @@ import aiohttp
 
 from app.core.config import settings
 from app.engine.whales import WhaleAddress, WhaleEvent, WhaleTrackerService, WhaleDirection
-from app.engine.whale_alert import WhaleAlertClient
+from app.engine.whale_explorers import ExplorerWhaleClient
 
 
 logger = logging.getLogger(__name__)
@@ -121,9 +121,9 @@ class WhaleApiClient:
 
 async def poll_whales_once(
     service: WhaleTrackerService,
-    client: Union[WhaleApiClient, WhaleAlertClient],
+    client: Union[WhaleApiClient, ExplorerWhaleClient],
 ) -> None:
-    """Один цикл опроса всех отслеживаемых адресов (custom API или Whale Alert)."""
+    """Один цикл опроса всех отслеживаемых адресов (эксплореры или custom API)."""
     addresses: Iterable[WhaleAddress] = await service.list_addresses()
     addresses = list(addresses)
 
@@ -142,27 +142,34 @@ async def poll_whales_once(
                 await service.push_event(event)
 
 
+def _use_explorer_client() -> bool:
+    """Есть ли хотя бы один ключ эксплорера для бесплатного провайдера."""
+    return bool(
+        settings.ETHERSCAN_API_KEY
+        or settings.BSCSCAN_API_KEY
+        or settings.POLYGONSCAN_API_KEY
+    )
+
+
 async def run_forever() -> None:
     """
     Основной цикл воркера.
 
-    Если задан WHALE_ALERT_API_KEY — используется Whale Alert REST API.
-    Иначе — кастомный провайдер по WHALE_API_URL (и опционально WHALE_API_KEY).
+    Приоритет: если задан любой ключ эксплорера (ETHERSCAN_API_KEY, BSCSCAN_API_KEY,
+    POLYGONSCAN_API_KEY) — используется бесплатный провайдер на базе Etherscan/BscScan/
+    PolygonScan. Иначе — кастомный провайдер по WHALE_API_URL (и опционально WHALE_API_KEY).
     Интервал опроса задаётся через WHALE_POLL_INTERVAL_SECONDS.
     """
     service = WhaleTrackerService()
-    whale_alert_key = (
-        settings.WHALE_ALERT_API_KEY.get_secret_value()
-        if settings.WHALE_ALERT_API_KEY
-        else None
-    )
-    if whale_alert_key:
-        client: Union[WhaleApiClient, WhaleAlertClient] = WhaleAlertClient(
-            api_key=whale_alert_key,
+    if _use_explorer_client():
+        client: Union[WhaleApiClient, ExplorerWhaleClient] = ExplorerWhaleClient(
+            etherscan_api_key=settings.ETHERSCAN_API_KEY,
+            bscscan_api_key=settings.BSCSCAN_API_KEY,
+            polygonscan_api_key=settings.POLYGONSCAN_API_KEY,
             timeout=10.0,
         )
-        logger.info("Whale worker using Whale Alert provider")
-    else:
+        logger.info("Whale worker using Explorer provider (Etherscan/BscScan/PolygonScan)")
+    elif settings.WHALE_API_URL:
         api_key = settings.WHALE_API_KEY.get_secret_value() if settings.WHALE_API_KEY else None
         client = WhaleApiClient(
             base_url=settings.WHALE_API_URL,
@@ -170,6 +177,12 @@ async def run_forever() -> None:
             timeout=5.0,
         )
         logger.info("Whale worker using custom WHALE_API_URL provider")
+    else:
+        logger.warning(
+            "No whale provider configured: set ETHERSCAN_API_KEY (or BSCSCAN_API_KEY, "
+            "POLYGONSCAN_API_KEY) or WHALE_API_URL in .env"
+        )
+        return
     interval = max(10, int(settings.WHALE_POLL_INTERVAL_SECONDS))
     logger.info("Starting whale worker with interval %s seconds", interval)
 
