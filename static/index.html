@@ -328,6 +328,9 @@
             border: 1px solid var(--border-color);
             caret-color: var(--text-main);
         }
+        select.whales-symbol-input {
+            cursor: pointer;
+        }
         .whales-symbol-input::placeholder {
             color: var(--text-muted);
             opacity: 0.8;
@@ -604,7 +607,9 @@
                     </div>
                     <div class="defi-filters__group defi-filters__group--token">
                         <label for="whales-symbol-filter" class="defi-filters__label">Токен</label>
-                        <input type="text" id="whales-symbol-filter" class="whales-symbol-input" placeholder="USDT, ETH…" aria-label="Фильтр по тикеру токена" maxlength="20" autocomplete="off">
+                        <select id="whales-symbol-filter" class="defi-filters__select whales-symbol-input" aria-label="Фильтр по тикеру токена">
+                            <option value="">Все</option>
+                        </select>
                     </div>
                 </div>
                 <table class="arbitrage-table">
@@ -1350,6 +1355,50 @@
             }
 
             /**
+             * Обновляет выпадающий список токенов в whale-виджете
+             * по тем токенам, которые реально пришли с бекенда.
+             * Вызывается только когда выбран режим "Все", чтобы избежать
+             * “прыжков” списка во время фильтрации.
+             * @param {Array<{token_symbol?: string}>} items
+             */
+            populateWhalesTokenOptions(items) {
+                const symbolEl = this.elements.whales?.symbolFilter;
+                if (!symbolEl) return;
+
+                const symbols = Array.from(
+                    new Set(
+                        (items || [])
+                            .map((i) => (i?.token_symbol || '').toString().trim().toUpperCase())
+                            .filter((s) => Boolean(s) && s !== '?' && s !== '—'),
+                    )
+                ).sort((a, b) => a.localeCompare(b));
+
+                const currentValue = (symbolEl.value || '').toString();
+
+                symbolEl.innerHTML = '';
+
+                const allOpt = document.createElement('option');
+                allOpt.value = '';
+                allOpt.textContent = 'Все';
+                symbolEl.appendChild(allOpt);
+
+                for (const sym of symbols) {
+                    const opt = document.createElement('option');
+                    opt.value = sym;
+                    opt.textContent = sym;
+                    symbolEl.appendChild(opt);
+                }
+
+                // Если текущая выбранная опция ещё осталась в списке — оставляем.
+                // Иначе гарантируем возврат в “Все”.
+                if (symbols.includes(currentValue)) {
+                    symbolEl.value = currentValue;
+                } else {
+                    symbolEl.value = '';
+                }
+            }
+
+            /**
              * Обновление виджета активности китов.
              */
             async updateWhales() {
@@ -1365,8 +1414,9 @@
                 if (chain) params.set('chain', chain);
                 const minUsd = this.elements.whales.minUsdFilter?.value?.trim();
                 if (minUsd) params.set('min_usd', minUsd);
-                const symbol = this.elements.whales.symbolFilter?.value?.trim();
-                if (symbol) params.set('symbol', symbol);
+                const symbolEl = this.elements.whales.symbolFilter;
+                const selectedSymbol = symbolEl?.value?.trim();
+                if (selectedSymbol) params.set('symbol', selectedSymbol);
 
                 try {
                     const resp = await fetch(`/api/v1/whales/events?${params.toString()}`);
@@ -1376,6 +1426,12 @@
 
                     /** @type {WhalesResponse} */
                     const data = await resp.json();
+
+                    // Обновляем список токенов, только если пользователь сейчас в режиме “Все”.
+                    if (symbolEl && !selectedSymbol) {
+                        this.populateWhalesTokenOptions(data?.items || []);
+                    }
+
                     const filters = {
                         symbol: this.elements.whales.symbolFilter?.value?.trim() || null,
                         direction: dir || null,
@@ -1910,19 +1966,7 @@
                 });
                 const whalesSymbolFilter = this.elements.whales?.symbolFilter;
                 if (whalesSymbolFilter) {
-                    // Принудительный фокус по клику/касанию (в WebView/Telegram фокус часто не срабатывает)
-                    const forceFocus = (e) => {
-                        if (e.target === whalesSymbolFilter || e.target.closest('.defi-filters__group--token')) {
-                            whalesSymbolFilter.focus();
-                        }
-                    };
-                    whalesSymbolFilter.addEventListener('mousedown', forceFocus);
-                    whalesSymbolFilter.addEventListener('touchstart', forceFocus, { passive: true });
                     whalesSymbolFilter.addEventListener('change', () => this.updateWhales());
-                    whalesSymbolFilter.addEventListener('input', () => {
-                        clearTimeout(this._whalesSymbolInputTimeout);
-                        this._whalesSymbolInputTimeout = setTimeout(() => this.updateWhales(), 400);
-                    });
                 }
 
                 window.addEventListener('resize', () => {

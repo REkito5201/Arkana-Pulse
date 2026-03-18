@@ -143,7 +143,12 @@ async def poll_whales_once(
 
 
 def _use_explorer_client() -> bool:
-    """Есть ли хотя бы один ключ эксплорера для бесплатного провайдера."""
+    """
+    Есть ли хотя бы один ключ эксплорера для бесплатного провайдера.
+
+    Если ключей нет, считаем, что приоритетным провайдером является внутренний
+    HTTP‑сервис WHALE_API_URL (вариант A архитектуры).
+    """
     return bool(
         settings.ETHERSCAN_API_KEY
         or settings.BSCSCAN_API_KEY
@@ -161,26 +166,29 @@ async def run_forever() -> None:
     Интервал опроса задаётся через WHALE_POLL_INTERVAL_SECONDS.
     """
     service = WhaleTrackerService()
-    if _use_explorer_client():
-        client: Union[WhaleApiClient, ExplorerWhaleClient] = ExplorerWhaleClient(
+
+    # Приоритет: если настроен внутренний HTTP‑провайдер (вариант A), используем его.
+    # Это позволяет агрегировать BTC и другие сети в одном месте.
+    if settings.WHALE_API_URL:
+        api_key = settings.WHALE_API_KEY.get_secret_value() if settings.WHALE_API_KEY else None
+        client: Union[WhaleApiClient, ExplorerWhaleClient] = WhaleApiClient(
+            base_url=settings.WHALE_API_URL,
+            api_key=api_key,
+            timeout=5.0,
+        )
+        logger.info("Whale worker using internal WHALE_API_URL provider")
+    elif _use_explorer_client():
+        client = ExplorerWhaleClient(
             etherscan_api_key=settings.ETHERSCAN_API_KEY,
             bscscan_api_key=settings.BSCSCAN_API_KEY,
             polygonscan_api_key=settings.POLYGONSCAN_API_KEY,
             timeout=10.0,
         )
         logger.info("Whale worker using Explorer provider (Etherscan/BscScan/PolygonScan)")
-    elif settings.WHALE_API_URL:
-        api_key = settings.WHALE_API_KEY.get_secret_value() if settings.WHALE_API_KEY else None
-        client = WhaleApiClient(
-            base_url=settings.WHALE_API_URL,
-            api_key=api_key,
-            timeout=5.0,
-        )
-        logger.info("Whale worker using custom WHALE_API_URL provider")
     else:
         logger.warning(
-            "No whale provider configured: set ETHERSCAN_API_KEY (or BSCSCAN_API_KEY, "
-            "POLYGONSCAN_API_KEY) or WHALE_API_URL in .env"
+            "No whale provider configured: set WHALE_API_URL (preferred) or "
+            "ETHERSCAN_API_KEY / BSCSCAN_API_KEY / POLYGONSCAN_API_KEY in .env"
         )
         return
     interval = max(10, int(settings.WHALE_POLL_INTERVAL_SECONDS))

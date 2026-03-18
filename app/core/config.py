@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     WHALE_MIN_USD: float = 100_000.0
     WHALE_POLL_INTERVAL_SECONDS: int = 60
 
+    # --- Провайдер китов (внутренний HTTP‑сервис) ---
+    BTC_API_BASE_URL: str = "https://blockstream.info/api"
+    BTC_API_TIMEOUT_SECONDS: int = 10
+    BTC_MAX_TXS_PER_ADDRESS: int = 50
+
     # --- Арбитраж: кэш в Redis ---
     ARBITRAGE_CACHE_TTL_SECONDS: int = 60
 

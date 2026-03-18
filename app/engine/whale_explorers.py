@@ -166,13 +166,20 @@ class ExplorerWhaleClient:
             logger.exception("Explorer txlist error for %s", addr.address)
             return []
 
+        result_list = data.get("result")
         if str(data.get("status")) != "1":
+            # Некоторые бесплатные/лимитируемые ответы Etherscan могут вернуть
+            # status="0" (NOTOK), но при этом содержать непустой `result`.
+            # Поэтому фильтруем только тогда, когда `result` пустой/невалидный.
             msg = data.get("message", "Unknown")
             if "rate limit" in str(msg).lower() or "Max rate" in str(msg).lower():
                 logger.warning("Explorer rate limit for %s: %s", addr.address, msg)
-            return []
+                return []
 
-        for tx in data.get("result") or []:
+            if not isinstance(result_list, list) or len(result_list) == 0:
+                return []
+
+        for tx in result_list or []:
             if not isinstance(tx, dict):
                 continue
             from_addr = (tx.get("from") or "").strip().lower()
@@ -230,10 +237,16 @@ class ExplorerWhaleClient:
         except Exception:
             return events
 
+        result_tok_list = data_tok.get("result")
         if str(data_tok.get("status")) != "1":
-            return events
+            # Аналогично txlist: допускаем status!="1", если `result` непустой.
+            msg = data_tok.get("message", "Unknown")
+            if "rate limit" in str(msg).lower() or "Max rate" in str(msg).lower():
+                return events
+            if not isinstance(result_tok_list, list) or len(result_tok_list) == 0:
+                return events
 
-        for tx in data_tok.get("result") or []:
+        for tx in result_tok_list or []:
             if not isinstance(tx, dict):
                 continue
             from_addr = (tx.get("from") or "").strip().lower()
