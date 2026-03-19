@@ -27,22 +27,6 @@ class Settings(BaseSettings):
     BINANCE_API_KEY: str | None = None
     BINANCE_API_SECRET: SecretStr | None = None
 
-    # --- Внешний API для кошельков китов ---
-    # Бесплатные эксплореры (приоритет): ключи с etherscan.io, bscscan.com, polygonscan.com
-    ETHERSCAN_API_KEY: str | None = None
-    BSCSCAN_API_KEY: str | None = None
-    POLYGONSCAN_API_KEY: str | None = None
-    # Опционально: кастомный провайдер (если ни один ключ эксплорера не задан)
-    WHALE_API_URL: str | None = None
-    WHALE_API_KEY: SecretStr | None = None
-    WHALE_MIN_USD: float = 100_000.0
-    WHALE_POLL_INTERVAL_SECONDS: int = 60
-
-    # --- Провайдер китов (внутренний HTTP‑сервис) ---
-    BTC_API_BASE_URL: str = "https://blockstream.info/api"
-    BTC_API_TIMEOUT_SECONDS: int = 10
-    BTC_MAX_TXS_PER_ADDRESS: int = 50
-
     # --- Арбитраж: кэш в Redis ---
     ARBITRAGE_CACHE_TTL_SECONDS: int = 60
 

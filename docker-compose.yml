@@ -21,32 +21,6 @@ services:
       - front
       - back
 
-  whale-provider:
-    build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    command: uvicorn app.provider.whale_provider:app --host 0.0.0.0 --port 8001
-    depends_on:
-      - redis
-    networks:
-      - front
-      - back
-
-  whale-worker:
-    build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      REDIS_URL: redis://redis:6379/0
-    command: python -m app.engine.whale_worker
-    depends_on:
-      - redis
-    networks:
-      - back
-      - front
-
   nginx:
     image: nginx:alpine
     restart: unless-stopped

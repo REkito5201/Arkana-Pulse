@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.redis import redis_client
@@ -12,7 +11,6 @@ from app.engine.collectors import ExchangeCollector
 from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
 from app.engine.arbitrage import ArbitrageService
-from app.engine.whales import WhaleAddress, WhaleTrackerService
 from app.engine.defi_liquidity import DefiLiquidityService
 
 router = APIRouter(
@@ -251,98 +249,6 @@ async def get_arbitrage_opportunity(
     ):
         result = {**result, "opportunity": None}
     return result
-
-
-class WhaleAddressIn(BaseModel):
-    """Входная модель для добавления/обновления адреса кита."""
-
-    address: str
-    chain: str
-    label: str | None = None
-
-
-@router.get("/whales/addresses")
-async def get_whale_addresses() -> dict[str, Any]:
-    """Возвращает список отслеживаемых адресов китов."""
-    service = WhaleTrackerService()
-    addresses = await service.list_addresses()
-    return {
-        "items": [
-            {
-                "address": a.address,
-                "chain": a.chain,
-                "label": a.label,
-            }
-            for a in addresses
-        ]
-    }
-
-
-@router.post("/whales/addresses")
-async def add_whale_address(payload: WhaleAddressIn) -> dict[str, Any]:
-    """
-    Добавляет новый адрес кита к отслеживанию.
-
-    Эндпоинт защищён общим API‑ключом и rate‑лимитом роутера.
-    """
-    service = WhaleTrackerService()
-    addr = WhaleAddress(
-        address=payload.address,
-        chain=payload.chain,
-        label=payload.label,
-    )
-    await service.add_address(addr)
-    return {"status": "ok"}
-
-
-@router.get("/whales/events")
-async def get_whale_events(
-    limit: int = 50,
-    direction: str | None = None,
-    chain: str | None = None,
-    min_usd: float | None = None,
-    symbol: str | None = None,
-) -> dict[str, Any]:
-    """
-    Возвращает последние события по кошелькам китов с опциональной фильтрацией.
-
-    - limit: сколько событий вернуть (1..MAX_EVENTS).
-    - direction: "in" | "out" — только входящие или исходящие; без параметра — все.
-    - chain: фильтр по сети (например ethereum, bitcoin).
-    - min_usd: минимальный объём в USD.
-    - symbol: фильтр по тикеру токена (например USDT, ETH).
-    """
-    service = WhaleTrackerService()
-    cap = min(max(1, limit), service.MAX_EVENTS)
-    events = await service.get_recent_events(limit=service.MAX_EVENTS)
-    if direction and direction.lower() in ("in", "out"):
-        events = [e for e in events if e.direction == direction.lower()]
-    if chain and chain.strip():
-        chain_lo = chain.strip().lower()
-        events = [e for e in events if (e.chain or "").lower() == chain_lo]
-    if min_usd is not None and min_usd > 0:
-        events = [e for e in events if e.amount_usd >= min_usd]
-    if symbol and symbol.strip():
-        sym_lo = symbol.strip().upper()
-        events = [e for e in events if (e.token_symbol or "").upper() == sym_lo]
-    events = events[:cap]
-    return {
-        "items": [
-            {
-                "tx_hash": e.tx_hash,
-                "address": e.address,
-                "chain": e.chain,
-                "direction": e.direction,
-                "token_symbol": e.token_symbol,
-                "token_address": e.token_address,
-                "amount": e.amount,
-                "amount_usd": e.amount_usd,
-                "timestamp": e.timestamp,
-                "label": e.label,
-            }
-            for e in events
-        ]
-    }
 
 
 @router.get("/defi/liquidity")

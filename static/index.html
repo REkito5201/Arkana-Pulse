@@ -258,18 +258,6 @@
             border-top: 1px solid rgba(255, 255, 255, 0.04);
         }
 
-        /* Виджет активности китов переиспользует те же таблицы, что и арбитраж */
-        .whales-content {
-            padding: 10px 14px 14px;
-            font-size: 0.8rem;
-        }
-
-        .whales-summary {
-            margin-bottom: 8px;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-        }
-
         /* DeFi Liquidity виджет */
         .defi-content {
             padding: 10px 14px 14px;
@@ -315,8 +303,7 @@
             -webkit-appearance: none;
             -moz-appearance: none;
         }
-        input.defi-filters__select,
-        .whales-symbol-input {
+        input.defi-filters__select {
             cursor: text;
             min-width: 7rem;
             width: 7rem;
@@ -327,13 +314,6 @@
             color: var(--text-main);
             border: 1px solid var(--border-color);
             caret-color: var(--text-main);
-        }
-        select.whales-symbol-input {
-            cursor: pointer;
-        }
-        .whales-symbol-input::placeholder {
-            color: var(--text-muted);
-            opacity: 0.8;
         }
 
         .defi-row--low-liquidity {
@@ -567,71 +547,6 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    <span class="chart-panel-title__icon" aria-hidden="true">🐋</span>Whale Activity · Large Flows
-                </span>
-            </header>
-            <div class="whales-content">
-                <div class="whales-summary" id="whales-summary">
-                    Нет данных по активности китов.
-                </div>
-                <div class="defi-filters">
-                    <div class="defi-filters__group">
-                        <label for="whales-direction-filter" class="defi-filters__label">Направление</label>
-                        <select id="whales-direction-filter" class="defi-filters__select" aria-label="Фильтр: входящие/исходящие">
-                            <option value="">Все</option>
-                            <option value="in">IN →</option>
-                            <option value="out">← OUT</option>
-                        </select>
-                    </div>
-                    <div class="defi-filters__group">
-                        <label for="whales-chain-filter" class="defi-filters__label">Сеть</label>
-                        <select id="whales-chain-filter" class="defi-filters__select" aria-label="Фильтр по сети">
-                            <option value="">Все</option>
-                            <option value="ethereum">Ethereum</option>
-                            <option value="bitcoin">Bitcoin</option>
-                            <option value="tron">Tron</option>
-                            <option value="solana">Solana</option>
-                            <option value="polygon">Polygon</option>
-                            <option value="bnb">BNB Chain</option>
-                        </select>
-                    </div>
-                    <div class="defi-filters__group">
-                        <label for="whales-min-usd-filter" class="defi-filters__label">Мин. USD</label>
-                        <select id="whales-min-usd-filter" class="defi-filters__select" aria-label="Минимальный объём в USD">
-                            <option value="">Все</option>
-                            <option value="100000">$100k</option>
-                            <option value="500000">$500k</option>
-                            <option value="1000000">$1M</option>
-                            <option value="5000000">$5M</option>
-                        </select>
-                    </div>
-                    <div class="defi-filters__group defi-filters__group--token">
-                        <label for="whales-symbol-filter" class="defi-filters__label">Токен</label>
-                        <select id="whales-symbol-filter" class="defi-filters__select whales-symbol-input" aria-label="Фильтр по тикеру токена">
-                            <option value="">Все</option>
-                        </select>
-                    </div>
-                </div>
-                <table class="arbitrage-table">
-                    <thead>
-                        <tr>
-                            <th title="Время транзакции">Время</th>
-                            <th title="IN — поступление на адрес, OUT — вывод">Направление</th>
-                            <th title="Адрес кошелька (сокращённый)">Адрес</th>
-                            <th title="Торговый символ токена">Токен</th>
-                            <th title="Объём в токенах">Сумма</th>
-                            <th title="Эквивалент в долларах США">USD</th>
-                        </tr>
-                    </thead>
-                    <tbody id="whales-table-body">
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="chart-panel">
-            <header class="chart-panel-header">
-                <span class="chart-panel-title">
                     <span class="chart-panel-title__icon" aria-hidden="true">🌊</span>DeFi Liquidity · Top Pools
                 </span>
             </header>
@@ -817,25 +732,6 @@
          */
 
         /**
-         * @typedef {Object} WhaleEventDto
-         * @property {string} tx_hash
-         * @property {string} address
-         * @property {string} chain
-         * @property {"in" | "out"} direction
-         * @property {string} token_symbol
-         * @property {string} token_address
-         * @property {number} amount
-         * @property {number} amount_usd
-         * @property {number} timestamp
-         * @property {string | null} [label]
-         */
-
-        /**
-         * @typedef {Object} WhalesResponse
-         * @property {WhaleEventDto[]} items
-         */
-
-        /**
          * @typedef {Object} DefiPoolDto
          * @property {string} chain
          * @property {string} dex
@@ -930,14 +826,6 @@
                         tableBody: document.getElementById('arb-table-body'),
                         spreadSelect: document.getElementById('arb-spread-select'),
                     },
-                    whales: {
-                        summary: document.getElementById('whales-summary'),
-                        tableBody: document.getElementById('whales-table-body'),
-                        directionFilter: document.getElementById('whales-direction-filter'),
-                        chainFilter: document.getElementById('whales-chain-filter'),
-                        minUsdFilter: document.getElementById('whales-min-usd-filter'),
-                        symbolFilter: document.getElementById('whales-symbol-filter'),
-                    },
                     defi: {
                         summary: document.getElementById('defi-summary'),
                         tableBody: document.getElementById('defi-table-body'),
@@ -995,9 +883,6 @@
                 this.setupEventListeners();
                 this.setupDefinitionsUI();
                 await this.updateData();
-                if (this.priceChart) {
-                    this.priceChart.timeScale().fitContent();
-                }
                 
                 // Запуск цикла обновления
                 setInterval(() => this.updateData(), this.CONFIG.UPDATE_INTERVAL);
@@ -1313,13 +1198,19 @@
 
                     if (data?.candles?.length > 0) {
                         this.renderUI(data);
+                        // Выравниваем видимый диапазон только после фактической
+                        // отрисовки свечей, чтобы избежать "сжатия в линию" при первом входе.
+                        if (this.priceChart) {
+                            const ts = this.priceChart.timeScale();
+                            ts.fitContent();
+                            ts.scrollToRealTime();
+                            this.priceChart.priceScale('right').applyOptions({ autoScale: true });
+                        }
                     }
 
                     // Арбитраж не критичен для отображения графиков, поэтому
                     // обрабатываем его отдельно и не даём ошибкам ломать UI.
                     await this.updateArbitrage();
-                    // Аналогично для активности китов: читаем её отдельно.
-                    await this.updateWhales();
                     // И для DeFi ликвидности по текущему активу.
                     await this.updateDefiLiquidity();
                 } catch (error) {
@@ -1351,159 +1242,6 @@
                     console.error("[Arbitrage Error]:", error);
                     summaryEl.textContent = 'Ошибка загрузки';
                     tbody.innerHTML = '';
-                }
-            }
-
-            /**
-             * Обновляет выпадающий список токенов в whale-виджете
-             * по тем токенам, которые реально пришли с бекенда.
-             * Вызывается только когда выбран режим "Все", чтобы избежать
-             * “прыжков” списка во время фильтрации.
-             * @param {Array<{token_symbol?: string}>} items
-             */
-            populateWhalesTokenOptions(items) {
-                const symbolEl = this.elements.whales?.symbolFilter;
-                if (!symbolEl) return;
-
-                const symbols = Array.from(
-                    new Set(
-                        (items || [])
-                            .map((i) => (i?.token_symbol || '').toString().trim().toUpperCase())
-                            .filter((s) => Boolean(s) && s !== '?' && s !== '—'),
-                    )
-                ).sort((a, b) => a.localeCompare(b));
-
-                const currentValue = (symbolEl.value || '').toString();
-
-                symbolEl.innerHTML = '';
-
-                const allOpt = document.createElement('option');
-                allOpt.value = '';
-                allOpt.textContent = 'Все';
-                symbolEl.appendChild(allOpt);
-
-                for (const sym of symbols) {
-                    const opt = document.createElement('option');
-                    opt.value = sym;
-                    opt.textContent = sym;
-                    symbolEl.appendChild(opt);
-                }
-
-                // Если текущая выбранная опция ещё осталась в списке — оставляем.
-                // Иначе гарантируем возврат в “Все”.
-                if (symbols.includes(currentValue)) {
-                    symbolEl.value = currentValue;
-                } else {
-                    symbolEl.value = '';
-                }
-            }
-
-            /**
-             * Обновление виджета активности китов.
-             */
-            async updateWhales() {
-                if (!this.elements.whales?.summary || !this.elements.whales?.tableBody) {
-                    return;
-                }
-                const summaryEl = this.elements.whales.summary;
-                const tbody = this.elements.whales.tableBody;
-                const params = new URLSearchParams({ limit: '20', cache_bust: String(Date.now()) });
-                const dir = this.elements.whales.directionFilter?.value?.trim();
-                if (dir) params.set('direction', dir);
-                const chain = this.elements.whales.chainFilter?.value?.trim();
-                if (chain) params.set('chain', chain);
-                const minUsd = this.elements.whales.minUsdFilter?.value?.trim();
-                if (minUsd) params.set('min_usd', minUsd);
-                const symbolEl = this.elements.whales.symbolFilter;
-                const selectedSymbol = symbolEl?.value?.trim();
-                if (selectedSymbol) params.set('symbol', selectedSymbol);
-
-                try {
-                    const resp = await fetch(`/api/v1/whales/events?${params.toString()}`);
-                    if (!resp.ok) {
-                        throw new Error(`HTTP Error: ${resp.status}`);
-                    }
-
-                    /** @type {WhalesResponse} */
-                    const data = await resp.json();
-
-                    // Обновляем список токенов, только если пользователь сейчас в режиме “Все”.
-                    if (symbolEl && !selectedSymbol) {
-                        this.populateWhalesTokenOptions(data?.items || []);
-                    }
-
-                    const filters = {
-                        symbol: this.elements.whales.symbolFilter?.value?.trim() || null,
-                        direction: dir || null,
-                        chain: chain || null,
-                        minUsd: minUsd || null,
-                    };
-                    this.renderWhales(data, filters);
-                } catch (error) {
-                    console.error("[Whales Error]:", error);
-                    summaryEl.textContent = 'Ошибка загрузки активности китов';
-                    tbody.innerHTML = '';
-                }
-            }
-
-            /**
-             * Отрисовка виджета активности китов.
-             * @param {WhalesResponse} data
-             * @param {{ symbol?: string | null, direction?: string | null, chain?: string | null, minUsd?: string | null }} [filters]
-             */
-            renderWhales(data, filters) {
-                const summaryEl = this.elements.whales?.summary;
-                const tbody = this.elements.whales?.tableBody;
-                if (!summaryEl || !tbody) return;
-
-                tbody.innerHTML = '';
-
-                const items = Array.isArray(data?.items) ? data.items : [];
-                if (items.length === 0) {
-                    if (filters?.symbol) {
-                        summaryEl.textContent = `По токену «${filters.symbol}» записей не найдено. Очистите поле или измените фильтры.`;
-                    } else {
-                        summaryEl.textContent = 'Нет данных по китам. Запустите воркер и добавьте адреса для отслеживания (см. README / конфиг).';
-                    }
-                    return;
-                }
-
-                // Показываем время последнего события в сводке.
-                const latestTs = items[0].timestamp;
-                summaryEl.textContent = `Последние ${items.length} крупных транзакций китов · обновлено ${this.formatTimestamp(latestTs)}`;
-
-                for (const e of items) {
-                    const tr = document.createElement('tr');
-
-                    const tdTime = document.createElement('td');
-                    const tdDir = document.createElement('td');
-                    const tdAddr = document.createElement('td');
-                    const tdToken = document.createElement('td');
-                    const tdAmount = document.createElement('td');
-                    const tdUsd = document.createElement('td');
-
-                    tdTime.textContent = this.formatTimestamp(e.timestamp);
-                    tdDir.textContent = e.direction === 'in' ? 'IN →' : '← OUT';
-                    tdDir.style.color = e.direction === 'in' ? this.CONFIG.COLORS.up : this.CONFIG.COLORS.down;
-
-                    tdAddr.textContent = e.label || e.address;
-                    tdToken.textContent = e.token_symbol || '—';
-
-                    tdAmount.textContent = e.amount.toLocaleString('en-US', {
-                        maximumFractionDigits: 4,
-                    });
-                    tdUsd.textContent = e.amount_usd
-                        ? this.formatter.format(e.amount_usd)
-                        : '—';
-
-                    tr.appendChild(tdTime);
-                    tr.appendChild(tdDir);
-                    tr.appendChild(tdAddr);
-                    tr.appendChild(tdToken);
-                    tr.appendChild(tdAmount);
-                    tr.appendChild(tdUsd);
-
-                    tbody.appendChild(tr);
                 }
             }
 
@@ -1886,7 +1624,9 @@
 
                     this.updateData().then(() => {
                         if (this.priceChart) {
-                            this.priceChart.timeScale().fitContent();
+                            const ts = this.priceChart.timeScale();
+                            ts.fitContent();
+                            ts.scrollToRealTime();
                             this.priceChart.priceScale('right').applyOptions({ autoScale: true });
                         }
                     });
@@ -1961,18 +1701,11 @@
                     });
                 }
 
-                [this.elements.whales?.directionFilter, this.elements.whales?.chainFilter, this.elements.whales?.minUsdFilter].forEach((el) => {
-                    if (el) el.addEventListener('change', () => this.updateWhales());
-                });
-                const whalesSymbolFilter = this.elements.whales?.symbolFilter;
-                if (whalesSymbolFilter) {
-                    whalesSymbolFilter.addEventListener('change', () => this.updateWhales());
-                }
-
                 window.addEventListener('resize', () => {
                     if (this.priceChart) {
                         const priceContainer = document.getElementById('price-chart');
                         this.priceChart.resize(priceContainer.clientWidth, priceContainer.clientHeight);
+                        this.priceChart.timeScale().fitContent();
                     }
                     if (this.rsiChart) {
                         const rsiContainer = document.getElementById('rsi-chart');
