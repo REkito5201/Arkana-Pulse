@@ -7,30 +7,73 @@
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
-            --bg-main: #131722;
-            --bg-accent: #1e222d;
-            --bg-input: #2b2b43;
+            --bg-main: #151a24;
+            --bg-accent: #1d2433;
+            --bg-input: #222b3d;
             --text-main: #ffffff;
-            --text-muted: #d1d4dc;
+            --text-muted: #dbe1ec;
             --color-up: #26a69a;
             --color-down: #ef5350;
             --color-rsi: #9c27b0;
-            --border-color: #3d3d5c;
+            --border-color: rgba(215, 225, 245, 0.38);
+        }
+
+        html {
+            font-size: 16px;
         }
 
         body { 
             margin: 0; 
             padding: 0; 
-            background-color: var(--bg-main); 
+            background:
+                radial-gradient(1100px circle at 10% -10%, rgba(33, 150, 243, 0.16) 0%, rgba(33, 150, 243, 0.00) 48%),
+                radial-gradient(900px circle at 90% 10%, rgba(156, 39, 176, 0.14) 0%, rgba(156, 39, 176, 0.00) 48%),
+                linear-gradient(180deg, #171d2a 0%, #121927 40%, #0f1623 100%);
             color: var(--text-main); 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: "Noto Sans", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 1rem;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(800px circle at 50% 0%, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.00) 45%),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0, rgba(255, 255, 255, 0.00) 2px, rgba(255, 255, 255, 0.00) 4px);
+            opacity: 0.35;
+            mix-blend-mode: overlay;
+            z-index: -1;
         }
 
         .controls { 
             padding: 15px 15px 10px; 
             text-align: center; 
-            background: var(--bg-accent); 
+            background: linear-gradient(180deg, rgba(29, 36, 51, 0.95), rgba(21, 26, 36, 0.95));
             border-bottom: 1px solid var(--border-color); 
+        }
+        
+        .lang-switch {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 30;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: rgba(18, 24, 36, 0.7);
+            color: var(--text-main);
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .lang-switch:hover {
+            border-color: rgba(255, 255, 255, 0.7);
+            background: rgba(34, 43, 61, 0.9);
+            transform: translateY(-1px);
         }
         
         .controls-hint {
@@ -90,11 +133,28 @@
         }
 
         .chart-panel {
-            background: #151925;
+            position: relative;
+            background:
+                linear-gradient(180deg, rgba(34, 43, 61, 0.95) 0%, rgba(20, 27, 39, 0.95) 100%),
+                radial-gradient(900px circle at 50% 0%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.00) 40%);
             border-radius: 10px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            box-shadow:
+                0 18px 45px rgba(0, 0, 0, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
             overflow: hidden;
+        }
+
+        .chart-panel::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(600px circle at 20% 0%, rgba(38, 166, 154, 0.06) 0%, rgba(38, 166, 154, 0.00) 40%),
+                radial-gradient(600px circle at 80% 0%, rgba(156, 39, 176, 0.05) 0%, rgba(156, 39, 176, 0.00) 40%);
+            opacity: 0.9;
+            z-index: 0;
         }
 
         .chart-panel-header {
@@ -102,8 +162,13 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            background: linear-gradient(90deg, rgba(33, 150, 243, 0.14), rgba(156, 39, 176, 0.05));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            /* Стеклянный нейтральный акцент без синего/фиолетового */
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.00) 55%),
+                linear-gradient(90deg, rgba(17, 23, 34, 0.82) 0%, rgba(20, 27, 39, 0.96) 100%);
+            position: relative;
+            z-index: 1;
         }
 
         .chart-panel-title {
@@ -130,7 +195,7 @@
         }
 
         .legend-group + .legend-group {
-            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 1px solid rgba(255, 255, 255, 0.16);
             padding-left: 12px;
             margin-left: 4px;
         }
@@ -184,6 +249,8 @@
             margin-top: 6px;
             font-size: 0.85rem;
             color: var(--text-muted);
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         /* Арбитражный виджет */
@@ -254,8 +321,13 @@
             opacity: 0.9;
         }
 
+        .arbitrage-table tr:hover td {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
         .arbitrage-table tr + tr td {
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            border-top: 1px solid rgba(255, 255, 255, 0.11);
         }
 
         /* DeFi Liquidity виджет */
@@ -331,6 +403,13 @@
             opacity: 0.9;
         }
 
+        .info-badge .def-icon {
+            margin-left: 2px;
+            width: 16px;
+            height: 16px;
+            font-size: 0.62rem;
+        }
+
         .def-icon {
             margin-left: 6px;
             width: 18px;
@@ -350,6 +429,23 @@
         .def-icon:hover {
             background: rgba(255, 255, 255, 0.06);
             color: #fff;
+        }
+
+        /* Белый акцент при наведении на селекты/интерактив */
+        #coin-select:hover,
+        .arbitrage-controls__select:hover,
+        .defi-filters__select:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.55);
+        }
+
+        .legend-item:hover .legend-value {
+            color: #ffffff;
+            opacity: 1;
+        }
+
+        .legend-item:hover .legend-dot {
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.18);
         }
 
         .definition-modal {
@@ -375,7 +471,9 @@
             position: relative;
             max-width: 420px;
             width: 90%;
-            background: #151925;
+            background:
+                linear-gradient(180deg, rgba(21, 25, 37, 0.98), rgba(10, 12, 18, 0.98)),
+                radial-gradient(700px circle at 50% 0%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.00) 45%);
             border-radius: 12px;
             border: 1px solid var(--border-color);
             padding: 18px 18px 14px;
@@ -415,6 +513,7 @@
     </style>
 </head>
 <body>
+    <button id="lang-toggle" class="lang-switch" type="button" aria-label="Switch language">🇷🇺 RU</button>
 
     <header class="controls">
         <select id="coin-select" aria-label="Выберите торговую пару">
@@ -423,22 +522,23 @@
             <option value="SOLUSDT">SOL / USDT</option>
             <option value="TONUSDT">TON / USDT</option>
             <option value="BNBUSDT">BNB / USDT</option>
-            <option value="__CUSTOM__">Другая пара…</option>
+            <option value="__CUSTOM__" id="coin-custom-option">Другая пара…</option>
         </select>
-        <p class="controls-hint">
+        <p class="controls-hint" id="controls-hint">
             Нажмите значок «?» рядом с названием панели, чтобы посмотреть определение индикатора.
         </p>
     </header>
 
     <main class="info">
         <h2 id="symbol-name">---</h2>
-        <div id="rsi-container">RSI (14): <span id="rsi-value">--</span></div>
+        <div id="rsi-container"><span id="rsi-label">RSI</span>: <span id="rsi-value">--</span></div>
         <div id="price-container">
             <span id="current-price">0.00</span>
             <span id="price-icon" class="price-arrow"></span>
         </div>
         <div class="info-badge">
-            <span class="info-badge-label">Market Fear &amp; Greed:</span>
+            <span class="info-badge-label" id="fg-title">Market Fear &amp; Greed:</span>
+            <button class="def-icon" type="button" data-def="fear_greed">?</button>
             <span class="info-badge-pill">
                 <span id="fg-value">--</span>
                 <span id="fg-label"></span>
@@ -450,7 +550,7 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    <span class="chart-panel-title__icon" aria-hidden="true">💹</span>Price · Bollinger Bands / Ichimoku
+                    <span class="chart-panel-title__icon" aria-hidden="true">🕯️</span><span id="title-price">Price · BB / Ichimoku</span>
                     <button class="def-icon" type="button" data-def="bb">?</button>
                     <button class="def-icon" type="button" data-def="ichimoku">?</button>
                 </span>
@@ -458,51 +558,51 @@
                     <div class="legend-group">
                         <span class="legend-item" data-series="candle">
                             <span class="legend-dot" style="background: #26a69a;"></span>
-                            <span>Candle ↑</span>
+                            <span id="legend-candle-up">Candle ↑</span>
                         </span>
                         <span class="legend-item" data-series="candle">
                             <span class="legend-dot" style="background: #ef5350;"></span>
-                            <span>Candle ↓</span>
+                            <span id="legend-candle-down">Candle ↓</span>
                         </span>
                     </div>
                     <div class="legend-group">
-                        <span class="legend-label">BB</span>
+                        <span class="legend-label" id="legend-bb-label">BB</span>
                         <span class="legend-item" data-series="bb">
                             <span class="legend-dot" style="background: #2196F3;"></span>
-                            <span>Upper</span>
+                            <span id="legend-bb-upper-label">Upper</span>
                             <span id="legend-bb-upper" class="legend-value">--</span>
                         </span>
                         <span class="legend-item" data-series="bb">
                             <span class="legend-dot" style="background: #2196F3;"></span>
-                            <span>Lower</span>
+                            <span id="legend-bb-lower-label">Lower</span>
                             <span id="legend-bb-lower" class="legend-value">--</span>
                         </span>
                         <span class="legend-item" data-series="bb">
                             <span class="legend-dot" style="background: rgba(255,255,255,0.6);"></span>
-                            <span>Basis</span>
+                            <span id="legend-bb-basis-label">Basis</span>
                             <span id="legend-bb-basis" class="legend-value">--</span>
                         </span>
                     </div>
                     <div class="legend-group">
-                        <span class="legend-label">Ichimoku</span>
+                        <span class="legend-label" id="legend-ichi-label">Ichimoku</span>
                         <span class="legend-item" data-series="ichi">
                             <span class="legend-dot" style="background: #FF9800;"></span>
-                            <span>Tenkan</span>
+                            <span id="legend-ichi-tenkan-label">Tenkan</span>
                             <span id="legend-ichi-tenkan" class="legend-value">--</span>
                         </span>
                         <span class="legend-item" data-series="ichi">
                             <span class="legend-dot" style="background: #FFEB3B;"></span>
-                            <span>Kijun</span>
+                            <span id="legend-ichi-kijun-label">Kijun</span>
                             <span id="legend-ichi-kijun" class="legend-value">--</span>
                         </span>
                         <span class="legend-item" data-series="ichi">
                             <span class="legend-dot" style="background: rgba(76, 175, 80, 0.9);"></span>
-                            <span>Span A</span>
+                            <span id="legend-ichi-span-a-label">Span A</span>
                             <span id="legend-ichi-span-a" class="legend-value">--</span>
                         </span>
                         <span class="legend-item" data-series="ichi">
                             <span class="legend-dot" style="background: rgba(244, 67, 54, 0.9);"></span>
-                            <span>Span B</span>
+                            <span id="legend-ichi-span-b-label">Span B</span>
                             <span id="legend-ichi-span-b" class="legend-value">--</span>
                         </span>
                     </div>
@@ -514,16 +614,17 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    <span class="chart-panel-title__icon" aria-hidden="true">⚖</span>Arbitrage · Cross-Exchange
+                    <span class="chart-panel-title__icon" aria-hidden="true">⚖</span><span id="title-arbitrage">Arbitrage</span>
+                    <button class="def-icon" type="button" data-def="arbitrage">?</button>
                 </span>
             </header>
             <div class="arbitrage-content">
                 <div class="arbitrage-summary">
-                    <span class="arbitrage-summary__label">Spread</span>
+                    <span class="arbitrage-summary__label" id="arb-spread-label">Spread</span>
                     <span id="arb-summary" class="arbitrage-summary__value">Нет данных</span>
                 </div>
                 <div class="arbitrage-controls">
-                    <label for="arb-spread-select" class="arbitrage-controls__label">Мин. спред %</label>
+                    <label for="arb-spread-select" class="arbitrage-controls__label" id="arb-min-spread-label">Мин. спред %</label>
                     <select id="arb-spread-select" class="arbitrage-controls__select" aria-label="Минимальный спред для отображения арбитража">
                         <option value="0.05">0.05%</option>
                         <option value="0.1" selected>0.1%</option>
@@ -534,8 +635,8 @@
                 <table class="arbitrage-table">
                     <thead>
                         <tr>
-                            <th title="Биржа, на которой отображается цена">Биржа</th>
-                            <th title="Последняя цена по торговой паре">Цена</th>
+                            <th title="Биржа, на которой отображается цена" id="arb-th-exchange">Биржа</th>
+                            <th title="Последняя цена по торговой паре" id="arb-th-price">Цена</th>
                         </tr>
                     </thead>
                     <tbody id="arb-table-body">
@@ -547,7 +648,8 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    <span class="chart-panel-title__icon" aria-hidden="true">🌊</span>DeFi Liquidity · Top Pools
+                    <span class="chart-panel-title__icon" aria-hidden="true">🌊</span><span id="title-defi">DeFi Liquidity</span>
+                    <button class="def-icon" type="button" data-def="defi_liquidity">?</button>
                 </span>
             </header>
             <div class="defi-content">
@@ -556,21 +658,21 @@
                 </div>
                 <div class="defi-filters">
                     <div class="defi-filters__group">
-                        <label for="defi-chain-filter" class="defi-filters__label">Сеть</label>
+                        <label for="defi-chain-filter" class="defi-filters__label" id="defi-chain-label">Сеть</label>
                         <select id="defi-chain-filter" class="defi-filters__select" aria-label="Фильтр по сети DeFi">
-                            <option value="ALL">Все</option>
+                            <option value="ALL" id="defi-chain-all-option">Все</option>
                         </select>
                     </div>
                     <div class="defi-filters__group">
-                        <label for="defi-dex-filter" class="defi-filters__label">DEX</label>
+                        <label for="defi-dex-filter" class="defi-filters__label" id="defi-dex-label">DEX</label>
                         <select id="defi-dex-filter" class="defi-filters__select" aria-label="Фильтр по DEX">
-                            <option value="ALL">Все</option>
+                            <option value="ALL" id="defi-dex-all-option">Все</option>
                         </select>
                     </div>
                     <div class="defi-filters__group">
-                        <label for="defi-tvl-filter" class="defi-filters__label">Мин. TVL</label>
+                        <label for="defi-tvl-filter" class="defi-filters__label" id="defi-tvl-label">Мин. TVL</label>
                         <select id="defi-tvl-filter" class="defi-filters__select" aria-label="Фильтр по минимальному TVL">
-                            <option value="0">Все</option>
+                            <option value="0" id="defi-tvl-all-option">Все</option>
                             <option value="50000">$50k</option>
                             <option value="100000" selected>$100k</option>
                             <option value="250000">$250k</option>
@@ -581,12 +683,12 @@
                 <table class="arbitrage-table">
                     <thead>
                         <tr>
-                            <th title="Блокчейн-сеть пула">Сеть</th>
-                            <th title="Децентрализованная биржа">DEX</th>
-                            <th title="Торговая пара (ссылка на Dexscreener)">Пара</th>
-                            <th title="Текущая цена в пуле">Цена</th>
-                            <th title="Total Value Locked — общий объём ликвидности в пуле (USD)">Liquidity</th>
-                            <th title="Объём торгов за последние 24 часа в USD">24h Volume</th>
+                            <th title="Блокчейн-сеть пула" id="defi-th-chain">Сеть</th>
+                            <th title="Децентрализованная биржа" id="defi-th-dex">DEX</th>
+                            <th title="Торговая пара (ссылка на Dexscreener)" id="defi-th-pair">Пара</th>
+                            <th title="Текущая цена в пуле" id="defi-th-price">Цена</th>
+                            <th title="Total Value Locked — общий объём ликвидности в пуле (USD)" id="defi-th-liquidity">Liquidity</th>
+                            <th title="Объём торгов за последние 24 часа в USD" id="defi-th-volume">24h Volume</th>
                         </tr>
                     </thead>
                     <tbody id="defi-table-body">
@@ -598,22 +700,22 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    <span class="chart-panel-title__icon" aria-hidden="true">📈</span>RSI · Momentum
+                    <span class="chart-panel-title__icon" aria-hidden="true">📈</span><span id="title-rsi">RSI</span>
                     <button class="def-icon" type="button" data-def="rsi">?</button>
                 </span>
                 <div class="chart-legend">
                     <span class="legend-item" data-series="rsi">
                         <span class="legend-dot" style="background: #9c27b0;"></span>
-                        <span>RSI (14)</span>
+                        <span id="legend-rsi-label">RSI (14)</span>
                         <span id="legend-rsi" class="legend-value">--</span>
                     </span>
                     <span class="legend-item">
                         <span class="legend-dot" style="background: rgba(239,83,80,0.7);"></span>
-                        <span>70 Overbought</span>
+                        <span id="legend-rsi-overbought">70 Overbought</span>
                     </span>
                     <span class="legend-item">
                         <span class="legend-dot" style="background: rgba(38,166,154,0.8);"></span>
-                        <span>30 Oversold</span>
+                        <span id="legend-rsi-oversold">30 Oversold</span>
                     </span>
                 </div>
             </header>
@@ -623,28 +725,28 @@
         <section class="chart-panel">
             <header class="chart-panel-header">
                 <span class="chart-panel-title">
-                    <span class="chart-panel-title__icon" aria-hidden="true">📊</span>MACD · Trend Strength
+                    <span class="chart-panel-title__icon" aria-hidden="true">📊</span><span id="title-macd">MACD</span>
                     <button class="def-icon" type="button" data-def="macd">?</button>
                 </span>
                 <div class="chart-legend">
                     <span class="legend-item" data-series="macd">
                         <span class="legend-dot" style="background: #2962FF;"></span>
-                        <span>MACD</span>
+                        <span id="legend-macd-label">MACD</span>
                         <span id="legend-macd" class="legend-value">--</span>
                     </span>
                     <span class="legend-item" data-series="macd-signal">
                         <span class="legend-dot" style="background: #FF6D00;"></span>
-                        <span>Signal</span>
+                        <span id="legend-macd-signal-label">Signal</span>
                         <span id="legend-macd-signal" class="legend-value">--</span>
                     </span>
                     <span class="legend-item" data-series="macd-hist">
                         <span class="legend-dot" style="background: #26a69a;"></span>
-                        <span>Hist ↑</span>
+                        <span id="legend-macd-hist-up">Hist ↑</span>
                         <span id="legend-macd-hist-pos" class="legend-value">--</span>
                     </span>
                     <span class="legend-item" data-series="macd-hist">
                         <span class="legend-dot" style="background: #ef5350;"></span>
-                        <span>Hist ↓</span>
+                        <span id="legend-macd-hist-down">Hist ↓</span>
                         <span id="legend-macd-hist-neg" class="legend-value">--</span>
                     </span>
                 </div>
@@ -660,33 +762,219 @@
             <p id="definition-body" class="definition-modal__body"></p>
             <div class="definition-modal__actions">
                 <button id="definition-close" class="definition-modal__button" type="button">
-                    Понятно
+                    <span id="definition-close-label">Понятно</span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        const DEFINITIONS = {
-            rsi: {
-                title: "RSI (Relative Strength Index)",
-                body: "Осциллятор от 0 до 100. Значения выше 70 часто означают перекупленность, ниже 30 — перепроданность.",
+        const I18N = {
+            ru: {
+                labels: {
+                    switchAria: "Переключить язык",
+                    switchButton: "🇷🇺 RU",
+                    coinSelectAria: "Выберите торговую пару",
+                    customPairOption: "Другая пара…",
+                    controlsHint: "Нажмите значок «?» рядом с названием панели, чтобы посмотреть определение индикатора.",
+                    rsiLabel: "Индекс RSI",
+                    rsiLegendLabel: "RSI (14)",
+                    fgTitle: "Индекс страха и жадности:",
+                    titlePrice: "Цена · Полосы Боллинджера / Ишимоку",
+                    candleUp: "Свеча ↑",
+                    candleDown: "Свеча ↓",
+                    bbUpper: "Верхняя",
+                    bbLower: "Нижняя",
+                    bbBasis: "Средняя",
+                    bbLegend: "Боллинджер",
+                    ichiLegend: "Ишимоку",
+                    ichiTenkan: "Тенкан",
+                    ichiKijun: "Киджун",
+                    ichiSpanA: "Спан A",
+                    ichiSpanB: "Спан B",
+                    titleArbitrage: "Арбитраж",
+                    spread: "Спред",
+                    minSpread: "Мин. спред %",
+                    arbAria: "Минимальный спред для отображения арбитража",
+                    arbExchange: "Биржа",
+                    arbPrice: "Цена",
+                    titleDefi: "DeFi ликвидность",
+                    defiNoData: "Нет данных по ликвидности DeFi.",
+                    defiChain: "Сеть",
+                    defiDex: "DEX",
+                    defiMinTvl: "Мин. TVL",
+                    defiAll: "Все",
+                    defiChainAria: "Фильтр по сети DeFi",
+                    defiDexAria: "Фильтр по DEX",
+                    defiTvlAria: "Фильтр по минимальному TVL",
+                    defiPair: "Пара",
+                    defiLiquidity: "Ликвидность",
+                    defiVolume: "Объем 24ч",
+                    titleRsi: "RSI",
+                    rsiOverbought: "70 Перекупленность",
+                    rsiOversold: "30 Перепроданность",
+                    titleMacd: "MACD",
+                    macdSignal: "Сигнал",
+                    histUp: "Гист ↑",
+                    histDown: "Гист ↓",
+                    close: "Понятно",
+                    loading: "Загрузка...",
+                    promptPair: "Введите тикер пары, например AVAXUSDT",
+                    invalidTicker: "Некорректный тикер. Используйте только латинские буквы и цифры, без пробелов.",
+                },
+                tooltips: {
+                    arbExchange: "Биржа, на которой отображается цена",
+                    arbPrice: "Последняя цена по торговой паре",
+                    defiChain: "Блокчейн-сеть пула",
+                    defiDex: "Децентрализованная биржа",
+                    defiPair: "Торговая пара (ссылка на Dexscreener)",
+                    defiPrice: "Текущая цена в пуле",
+                    defiLiquidity: "Total Value Locked — общий объем ликвидности в пуле (USD)",
+                    defiVolume: "Объем торгов за последние 24 часа в USD",
+                },
+                messages: {
+                    loadError: "Ошибка загрузки",
+                    defiLoadError: "Ошибка загрузки ликвидности DeFi",
+                    noDefiPools: "Нет пулов ликвидности по запросу \"{query}\".",
+                    defiTop: "Top {visible} / {total} DeFi пулов для \"{query}\".",
+                    noArbPrices: "Нет данных по ценам бирж",
+                    noArbOpportunity: "Нет выгодного арбитража (спред < порога)",
+                    arbOpportunity: "Купить на {buy}, продать на {sell} · +{spread} ({money})",
+                },
+                definitions: {
+                    rsi: {
+                        title: "RSI (Индекс относительной силы)",
+                        body: "Осциллятор от 0 до 100. Значения выше 70 часто означают перекупленность, ниже 30 — перепроданность.",
+                    },
+                    bb: {
+                        title: "Полосы Боллинджера",
+                        body: "Полосы вокруг средней цены. Верхняя и нижняя границы помогают видеть статистически высокие и низкие значения цены.",
+                    },
+                    macd: {
+                        title: "MACD (Схождение/расхождение скользящих средних)",
+                        body: "Разница между двумя экспоненциальными средними и её сглаживание. Линии и гистограмма показывают силу тренда и возможный разворот.",
+                    },
+                    ichimoku: {
+                        title: "Облако Ишимоку",
+                        body: "Комплексный индикатор тренда. Облако Span A/B задает зоны поддержки/сопротивления, а линии Tenkan/Kijun отображают баланс цены.",
+                    },
+                    fear_greed: {
+                        title: "Индекс страха и жадности",
+                        body: "Индекс настроений рынка от 0 (страх) до 100 (жадность). Экстремальные значения часто совпадают с разворотами.",
+                    },
+                    arbitrage: {
+                        title: "Арбитраж",
+                        body: "Арбитраж показывает разницу цены актива между биржами. Если спред выше порога, можно теоретически купить дешевле на одной бирже и продать дороже на другой.",
+                    },
+                    defi_liquidity: {
+                        title: "DeFi ликвидность",
+                        body: "Показывает пулы ликвидности DeFi по выбранному активу: сеть, DEX, цену, объем ликвидности (TVL) и 24ч объем торгов.",
+                    },
+                },
+                locale: "ru-RU",
             },
-            bb: {
-                title: "Bollinger Bands",
-                body: "Полосы вокруг средней цены. Верхняя и нижняя границы помогают видеть статистически высокие и низкие значения цены.",
-            },
-            macd: {
-                title: "MACD",
-                body: "Разница между двумя экспоненциальными средними и её сглаживание. Линии и гистограмма показывают силу тренда и возможный разворот.",
-            },
-            ichimoku: {
-                title: "Ichimoku Cloud",
-                body: "Комплексный индикатор тренда. Облако Span A/B задаёт зоны поддержки/сопротивления, а линии Tenkan/Kijun отображают баланс цены.",
-            },
-            fear_greed: {
-                title: "Fear & Greed Index",
-                body: "Индекс настроений рынка от 0 (страх) до 100 (жадность). Экстремальные значения часто совпадают с разворотами.",
+            en: {
+                labels: {
+                    switchAria: "Switch language",
+                    switchButton: "🇬🇧 EN",
+                    coinSelectAria: "Select trading pair",
+                    customPairOption: "Other pair…",
+                    controlsHint: "Click the '?' icon near each panel title to view an indicator definition.",
+                    rsiLabel: "RSI Index",
+                    rsiLegendLabel: "RSI (14)",
+                    fgTitle: "Market Fear & Greed:",
+                    titlePrice: "Price · BB / Ichimoku",
+                    candleUp: "Candle ↑",
+                    candleDown: "Candle ↓",
+                    bbUpper: "Upper",
+                    bbLower: "Lower",
+                    bbBasis: "Basis",
+                    bbLegend: "Bollinger",
+                    ichiLegend: "Ichimoku",
+                    ichiTenkan: "Tenkan",
+                    ichiKijun: "Kijun",
+                    ichiSpanA: "Span A",
+                    ichiSpanB: "Span B",
+                    titleArbitrage: "Arbitrage",
+                    spread: "Spread",
+                    minSpread: "Min spread %",
+                    arbAria: "Minimum spread to display arbitrage",
+                    arbExchange: "Exchange",
+                    arbPrice: "Price",
+                    titleDefi: "DeFi Liquidity",
+                    defiNoData: "No DeFi liquidity data.",
+                    defiChain: "Chain",
+                    defiDex: "DEX",
+                    defiMinTvl: "Min TVL",
+                    defiAll: "All",
+                    defiChainAria: "Filter DeFi by chain",
+                    defiDexAria: "Filter DeFi by DEX",
+                    defiTvlAria: "Filter DeFi by minimum TVL",
+                    defiPair: "Pair",
+                    defiLiquidity: "Liquidity",
+                    defiVolume: "24h Volume",
+                    titleRsi: "RSI",
+                    rsiOverbought: "70 Overbought",
+                    rsiOversold: "30 Oversold",
+                    titleMacd: "MACD",
+                    macdSignal: "Signal",
+                    histUp: "Hist ↑",
+                    histDown: "Hist ↓",
+                    close: "Got it",
+                    loading: "Loading...",
+                    promptPair: "Enter pair ticker, for example AVAXUSDT",
+                    invalidTicker: "Invalid ticker. Use only Latin letters and numbers, without spaces.",
+                },
+                tooltips: {
+                    arbExchange: "Exchange where the price is shown",
+                    arbPrice: "Latest price for the trading pair",
+                    defiChain: "Pool blockchain network",
+                    defiDex: "Decentralized exchange",
+                    defiPair: "Trading pair (Dexscreener link)",
+                    defiPrice: "Current pool price",
+                    defiLiquidity: "Total Value Locked in the pool (USD)",
+                    defiVolume: "24h trading volume in USD",
+                },
+                messages: {
+                    loadError: "Load error",
+                    defiLoadError: "Failed to load DeFi liquidity",
+                    noDefiPools: "No liquidity pools found for \"{query}\".",
+                    defiTop: "Top {visible} / {total} DeFi pools for \"{query}\".",
+                    noArbPrices: "No exchange price data",
+                    noArbOpportunity: "No profitable arbitrage (spread below threshold)",
+                    arbOpportunity: "Buy on {buy}, sell on {sell} · +{spread} ({money})",
+                },
+                definitions: {
+                    rsi: {
+                        title: "RSI (Relative Strength Index)",
+                        body: "An oscillator from 0 to 100. Values above 70 often indicate overbought conditions, below 30 indicate oversold conditions.",
+                    },
+                    bb: {
+                        title: "Bollinger Bands",
+                        body: "Bands around the moving average. Upper and lower bounds highlight statistically high and low price zones.",
+                    },
+                    macd: {
+                        title: "MACD",
+                        body: "Difference between two EMAs and its smoothing. Lines and histogram show trend strength and potential reversals.",
+                    },
+                    ichimoku: {
+                        title: "Ichimoku Cloud",
+                        body: "A trend indicator suite. Span A/B cloud marks support and resistance zones, while Tenkan/Kijun lines show price balance.",
+                    },
+                    fear_greed: {
+                        title: "Fear & Greed Index",
+                        body: "Market sentiment index from 0 (fear) to 100 (greed). Extreme values often align with turning points.",
+                    },
+                    arbitrage: {
+                        title: "Arbitrage",
+                        body: "Arbitrage tracks price differences across exchanges. If spread is above the threshold, you can theoretically buy on one exchange and sell on another for profit.",
+                    },
+                    defi_liquidity: {
+                        title: "DeFi Liquidity",
+                        body: "Shows DeFi liquidity pools for the selected asset: chain, DEX, price, total liquidity (TVL), and 24h trading volume.",
+                    },
+                },
+                locale: "en-US",
             },
         };
 
@@ -780,9 +1068,9 @@
                         up: '#26a69a',
                         down: '#ef5350',
                         rsi: '#9c27b0',
-                        bg: '#131722',
-                        grid: '#2b2b43',
-                        text: '#d1d4dc',
+                        bg: '#1d2433',
+                        grid: '#3a475f',
+                        text: '#dbe1ec',
                         // Новые цвета
                         bb: 'rgba(33, 150, 243, 0.2)',
                         bbLine: '#2196F3',
@@ -798,6 +1086,7 @@
                 // Состояние приложения
                 this.state = {
                     currentSymbol: "BTCUSDT",
+                    language: this.detectLanguage(),
                     prevPrice: 0,
                     isFirstLoad: true,
                     lastData: null,
@@ -813,6 +1102,7 @@
 
                 // Ссылки на DOM-элементы
                 this.elements = {
+                    langToggle: document.getElementById('lang-toggle'),
                     select: document.getElementById('coin-select'),
                     symbol: document.getElementById('symbol-name'),
                     rsi: document.getElementById('rsi-value'),
@@ -868,17 +1158,94 @@
                 this.ichiSpanA = null;
                 this.ichiSpanB = null;
                 
-                this.formatter = new Intl.NumberFormat('en-US', {
+                this.formatter = null;
+                this.numberFormatter = null;
+                this.refreshFormatters();
+            }
+
+            detectLanguage() {
+                const saved = localStorage.getItem('arkana.lang');
+                if (saved === 'ru' || saved === 'en') {
+                    return saved;
+                }
+                const browserLang = (navigator.language || '').toLowerCase();
+                return browserLang.startsWith('ru') ? 'ru' : 'en';
+            }
+
+            refreshFormatters() {
+                const locale = I18N[this.state.language]?.locale || 'en-US';
+                this.formatter = new Intl.NumberFormat(locale, {
                     style: 'currency',
                     currency: 'USD',
                     minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                 });
+                this.numberFormatter = new Intl.NumberFormat('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+            }
+
+            formatUsd(value) {
+                const numeric = Number(value);
+                if (!Number.isFinite(numeric)) return '--';
+                if (this.state.language === 'ru') {
+                    return `$${this.numberFormatter.format(numeric)}`;
+                }
+                return this.formatter.format(numeric);
+            }
+
+            formatSymbolDisplay(symbol) {
+                const raw = String(symbol || '').toUpperCase().trim();
+                if (!raw) return '---';
+                const quoteList = ['USDT', 'USDC', 'USD', 'BTC', 'ETH', 'BNB'];
+                for (const quote of quoteList) {
+                    if (raw.endsWith(quote) && raw.length > quote.length) {
+                        const base = raw.slice(0, raw.length - quote.length);
+                        return `${base}/${quote}`;
+                    }
+                }
+                return raw;
+            }
+
+            t(path, params = {}) {
+                const langPack = I18N[this.state.language] || I18N.en;
+                const value = path.split('.').reduce((acc, key) => (acc ? acc[key] : undefined), langPack);
+                if (typeof value !== 'string') return path;
+                return value.replace(/\{(\w+)\}/g, (_, key) => String(params[key] ?? ''));
+            }
+
+            /**
+             * Показывает последние N свечей на ценовом графике с комфортным масштабом.
+             * @param {ApiResponse} data
+             * @param {number} [count=150]
+             */
+            setPriceVisibleRange(data, count = 150) {
+                if (!this.priceChart || !Array.isArray(data?.candles) || data.candles.length === 0) {
+                    return;
+                }
+                const bars = data.candles.length;
+                const visible = Math.min(bars, count);
+                const ts = this.priceChart.timeScale();
+
+                // Лёгкий zoom по умолчанию: не даём свечам слипаться в линию.
+                this.priceChart.applyOptions({
+                    timeScale: {
+                        borderVisible: false,
+                        timeVisible: true,
+                        barSpacing: 8,
+                        rightOffset: 3,
+                    },
+                });
+
+                ts.setVisibleLogicalRange({ from: bars - visible, to: bars });
             }
 
             /**
              * Инициализация приложения
              */
             async init() {
+                this.applyLocalization();
                 this.initCharts();
                 this.setupEventListeners();
                 this.setupDefinitionsUI();
@@ -886,6 +1253,97 @@
                 
                 // Запуск цикла обновления
                 setInterval(() => this.updateData(), this.CONFIG.UPDATE_INTERVAL);
+            }
+
+            applyLocalization() {
+                const lang = this.state.language;
+                const byId = (id) => document.getElementById(id);
+                const setText = (id, text) => {
+                    const el = byId(id);
+                    if (el) el.textContent = text;
+                };
+                const setAria = (id, text) => {
+                    const el = byId(id);
+                    if (el) el.setAttribute('aria-label', text);
+                };
+                const setTitle = (id, text) => {
+                    const el = byId(id);
+                    if (el) el.setAttribute('title', text);
+                };
+
+                document.documentElement.lang = lang;
+
+                setText('coin-custom-option', this.t('labels.customPairOption'));
+                setText('controls-hint', this.t('labels.controlsHint'));
+                setText('rsi-label', this.t('labels.rsiLabel'));
+                setText('fg-title', this.t('labels.fgTitle'));
+                setText('title-price', this.t('labels.titlePrice'));
+                setText('legend-candle-up', this.t('labels.candleUp'));
+                setText('legend-candle-down', this.t('labels.candleDown'));
+                setText('legend-bb-label', this.t('labels.bbLegend'));
+                setText('legend-bb-upper-label', this.t('labels.bbUpper'));
+                setText('legend-bb-lower-label', this.t('labels.bbLower'));
+                setText('legend-bb-basis-label', this.t('labels.bbBasis'));
+                setText('legend-ichi-label', this.t('labels.ichiLegend'));
+                setText('legend-ichi-tenkan-label', this.t('labels.ichiTenkan'));
+                setText('legend-ichi-kijun-label', this.t('labels.ichiKijun'));
+                setText('legend-ichi-span-a-label', this.t('labels.ichiSpanA'));
+                setText('legend-ichi-span-b-label', this.t('labels.ichiSpanB'));
+                setText('title-arbitrage', this.t('labels.titleArbitrage'));
+                setText('arb-spread-label', this.t('labels.spread'));
+                setText('arb-min-spread-label', this.t('labels.minSpread'));
+                setText('arb-th-exchange', this.t('labels.arbExchange'));
+                setText('arb-th-price', this.t('labels.arbPrice'));
+                setText('title-defi', this.t('labels.titleDefi'));
+                setText('defi-chain-label', this.t('labels.defiChain'));
+                setText('defi-dex-label', this.t('labels.defiDex'));
+                setText('defi-tvl-label', this.t('labels.defiMinTvl'));
+                setText('defi-chain-all-option', this.t('labels.defiAll'));
+                setText('defi-dex-all-option', this.t('labels.defiAll'));
+                setText('defi-tvl-all-option', this.t('labels.defiAll'));
+                setText('defi-th-chain', this.t('labels.defiChain'));
+                setText('defi-th-dex', this.t('labels.defiDex'));
+                setText('defi-th-pair', this.t('labels.defiPair'));
+                setText('defi-th-price', this.t('labels.arbPrice'));
+                setText('defi-th-liquidity', this.t('labels.defiLiquidity'));
+                setText('defi-th-volume', this.t('labels.defiVolume'));
+                setText('title-rsi', this.t('labels.titleRsi'));
+                setText('legend-rsi-label', this.t('labels.rsiLegendLabel'));
+                setText('legend-rsi-overbought', this.t('labels.rsiOverbought'));
+                setText('legend-rsi-oversold', this.t('labels.rsiOversold'));
+                setText('title-macd', this.t('labels.titleMacd'));
+                setText('legend-macd-label', this.t('labels.titleMacd'));
+                setText('legend-macd-signal-label', this.t('labels.macdSignal'));
+                setText('legend-macd-hist-up', this.t('labels.histUp'));
+                setText('legend-macd-hist-down', this.t('labels.histDown'));
+                setText('definition-close-label', this.t('labels.close'));
+
+                setAria('coin-select', this.t('labels.coinSelectAria'));
+                setAria('defi-chain-filter', this.t('labels.defiChainAria'));
+                setAria('defi-dex-filter', this.t('labels.defiDexAria'));
+                setAria('defi-tvl-filter', this.t('labels.defiTvlAria'));
+                setAria('arb-spread-select', this.t('labels.arbAria'));
+                setTitle('arb-th-exchange', this.t('tooltips.arbExchange'));
+                setTitle('arb-th-price', this.t('tooltips.arbPrice'));
+                setTitle('defi-th-chain', this.t('tooltips.defiChain'));
+                setTitle('defi-th-dex', this.t('tooltips.defiDex'));
+                setTitle('defi-th-pair', this.t('tooltips.defiPair'));
+                setTitle('defi-th-price', this.t('tooltips.defiPrice'));
+                setTitle('defi-th-liquidity', this.t('tooltips.defiLiquidity'));
+                setTitle('defi-th-volume', this.t('tooltips.defiVolume'));
+
+                if (this.elements.langToggle) {
+                    this.elements.langToggle.textContent = this.t('labels.switchButton');
+                    this.elements.langToggle.setAttribute('aria-label', this.t('labels.switchAria'));
+                    this.elements.langToggle.title = this.t('labels.switchAria');
+                }
+
+                if (this.elements.defi?.summary && !this.state.defiRaw) {
+                    this.elements.defi.summary.textContent = this.t('labels.defiNoData');
+                }
+                if (this.elements.arbitrage?.summary && !this.elements.arbitrage.tableBody?.children.length) {
+                    this.elements.arbitrage.summary.textContent = this.t('messages.noArbPrices');
+                }
             }
 
             /**
@@ -908,7 +1366,12 @@
                     },
                     width: priceContainer.clientWidth,
                     height: priceContainer.clientHeight,
-                    timeScale: { borderVisible: false, timeVisible: true },
+                    timeScale: {
+                        borderVisible: false,
+                        timeVisible: true,
+                        barSpacing: 8,
+                        rightOffset: 3,
+                    },
                     rightPriceScale: { 
                         visible: true, 
                         localization: { priceFormatter: p => `$${p.toFixed(2)}` } 
@@ -1198,12 +1661,9 @@
 
                     if (data?.candles?.length > 0) {
                         this.renderUI(data);
-                        // Выравниваем видимый диапазон только после фактической
-                        // отрисовки свечей, чтобы избежать "сжатия в линию" при первом входе.
+                        // Показываем последние свечи с комфортным масштабом.
+                        this.setPriceVisibleRange(data);
                         if (this.priceChart) {
-                            const ts = this.priceChart.timeScale();
-                            ts.fitContent();
-                            ts.scrollToRealTime();
                             this.priceChart.priceScale('right').applyOptions({ autoScale: true });
                         }
                     }
@@ -1240,7 +1700,7 @@
                     this.renderArbitrage(data);
                 } catch (error) {
                     console.error("[Arbitrage Error]:", error);
-                    summaryEl.textContent = 'Ошибка загрузки';
+                    summaryEl.textContent = this.t('messages.loadError');
                     tbody.innerHTML = '';
                 }
             }
@@ -1272,7 +1732,7 @@
                     this.renderDefiLiquidity(data);
                 } catch (error) {
                     console.error("[DeFi Error]:", error);
-                    summaryEl.textContent = 'Ошибка загрузки ликвидности DeFi';
+                    summaryEl.textContent = this.t('messages.defiLoadError');
                     tbody.innerHTML = '';
                 }
             }
@@ -1290,7 +1750,7 @@
 
                 const pools = Array.isArray(data?.pools) ? data.pools : [];
                 if (pools.length === 0) {
-                    summaryEl.textContent = `Нет пулов ликвидности по запросу "${data?.query || ''}".`;
+                    summaryEl.textContent = this.t('messages.noDefiPools', { query: data?.query || '' });
                     return;
                 }
 
@@ -1304,7 +1764,7 @@
 
                 if (chainSelect) {
                     const current = filters.chain || 'ALL';
-                    chainSelect.innerHTML = '<option value=\"ALL\">Все</option>' + uniqueChains
+                    chainSelect.innerHTML = `<option value="ALL">${this.t('labels.defiAll')}</option>` + uniqueChains
                         .map((c) => `<option value=\"${c}\">${c}</option>`)
                         .join('');
                     if (current && (current === 'ALL' || uniqueChains.includes(current))) {
@@ -1317,7 +1777,7 @@
 
                 if (dexSelect) {
                     const currentDex = filters.dex || 'ALL';
-                    dexSelect.innerHTML = '<option value=\"ALL\">Все</option>' + uniqueDexes
+                    dexSelect.innerHTML = `<option value="ALL">${this.t('labels.defiAll')}</option>` + uniqueDexes
                         .map((d) => `<option value=\"${d}\">${d}</option>`)
                         .join('');
                     if (currentDex && (currentDex === 'ALL' || uniqueDexes.includes(currentDex))) {
@@ -1337,7 +1797,7 @@
 
                 const total = pools.length;
                 const visible = visiblePools.length;
-                summaryEl.textContent = `Top ${visible} / ${total} DeFi пулов для \"${data.query}\".`;
+                summaryEl.textContent = this.t('messages.defiTop', { visible, total, query: data.query || '' });
 
                 const liqThreshold = Number(filters.minLiquidityUsd) || 100000;
 
@@ -1365,15 +1825,15 @@
                     tdPair.appendChild(pairLink);
 
                     tdPrice.textContent = p.price_usd
-                        ? this.formatter.format(p.price_usd)
+                        ? this.formatUsd(p.price_usd)
                         : '—';
 
                     tdLiq.textContent = p.liquidity_usd
-                        ? this.formatter.format(p.liquidity_usd)
+                        ? this.formatUsd(p.liquidity_usd)
                         : '—';
 
                     tdVol.textContent = p.volume24h_usd
-                        ? this.formatter.format(p.volume24h_usd)
+                        ? this.formatUsd(p.volume24h_usd)
                         : '—';
 
                     tr.appendChild(tdChain);
@@ -1399,7 +1859,7 @@
             formatTimestamp(ts) {
                 if (!ts) return '--';
                 const d = new Date(ts * 1000);
-                return d.toLocaleString('ru-RU', {
+                return d.toLocaleString(I18N[this.state.language]?.locale || 'en-US', {
                     hour12: false,
                     year: '2-digit',
                     month: '2-digit',
@@ -1422,7 +1882,7 @@
 
                 const tickers = Array.isArray(data?.tickers) ? [...data.tickers] : [];
                 if (tickers.length === 0) {
-                    summaryEl.textContent = 'Нет данных по ценам бирж';
+                    summaryEl.textContent = this.t('messages.noArbPrices');
                     return;
                 }
 
@@ -1435,7 +1895,7 @@
                     const tdPrice = document.createElement('td');
 
                     tdExchange.textContent = t.exchange.toUpperCase();
-                    tdPrice.textContent = this.formatter.format(t.price);
+                    tdPrice.textContent = this.formatUsd(t.price);
 
                     tr.appendChild(tdExchange);
                     tr.appendChild(tdPrice);
@@ -1444,13 +1904,18 @@
 
                 const opp = data.opportunity;
                 if (!opp) {
-                    summaryEl.textContent = 'Нет выгодного арбитража (спред < порога)';
+                    summaryEl.textContent = this.t('messages.noArbOpportunity');
                     return;
                 }
 
                 const spreadStr = `${opp.spread_pct.toFixed(3)}%`;
-                const moneyStr = this.formatter.format(opp.spread_abs);
-                summaryEl.textContent = `Купить на ${opp.buy_exchange.toUpperCase()}, продать на ${opp.sell_exchange.toUpperCase()} · +${spreadStr} (${moneyStr})`;
+                const moneyStr = this.formatUsd(opp.spread_abs);
+                summaryEl.textContent = this.t('messages.arbOpportunity', {
+                    buy: opp.buy_exchange.toUpperCase(),
+                    sell: opp.sell_exchange.toUpperCase(),
+                    spread: spreadStr,
+                    money: moneyStr,
+                });
             }
 
             /**
@@ -1472,30 +1937,52 @@
                 // Обновление BB
                 if (this.bbUpper && this.bbMiddle && this.bbLower &&
                     Array.isArray(data.bb_upper) && Array.isArray(data.bb_middle) && Array.isArray(data.bb_lower)) {
-                    this.bbUpper.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_upper[i] })));
-                    this.bbMiddle.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_middle[i] })));
-                    this.bbLower.setData(data.candles.map((c, i) => ({ time: c.time, value: data.bb_lower[i] })));
+                    // Lightweight Charts лучше не получать `null`/`undefined` как value:
+                    // это предотвращает внутренние подстановки (типа 0) и связанные с ними проблемы автоскейла.
+                    this.bbUpper.setData(
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.bb_upper[i] }))
+                            .filter((p) => p.value != null)
+                    );
+                    this.bbMiddle.setData(
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.bb_middle[i] }))
+                            .filter((p) => p.value != null)
+                    );
+                    this.bbLower.setData(
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.bb_lower[i] }))
+                            .filter((p) => p.value != null)
+                    );
                 }
 
                 // Обновление Ichimoku
                 if (this.ichiConversion && Array.isArray(data.ichi_conversion)) {
                     this.ichiConversion.setData(
-                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_conversion[i] }))
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.ichi_conversion[i] }))
+                            .filter((p) => p.value != null)
                     );
                 }
                 if (this.ichiBase && Array.isArray(data.ichi_base)) {
                     this.ichiBase.setData(
-                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_base[i] }))
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.ichi_base[i] }))
+                            .filter((p) => p.value != null)
                     );
                 }
                 if (this.ichiSpanA && Array.isArray(data.ichi_span_a)) {
                     this.ichiSpanA.setData(
-                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_span_a[i] }))
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.ichi_span_a[i] }))
+                            .filter((p) => p.value != null)
                     );
                 }
                 if (this.ichiSpanB && Array.isArray(data.ichi_span_b)) {
                     this.ichiSpanB.setData(
-                        data.candles.map((c, i) => ({ time: c.time, value: data.ichi_span_b[i] }))
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.ichi_span_b[i] }))
+                            .filter((p) => p.value != null)
                     );
                 }
                 
@@ -1511,14 +1998,25 @@
                 // Обновление MACD
                 if (this.macdSeries && this.macdSignalSeries && this.macdHistSeries &&
                     Array.isArray(data.macd_line) && Array.isArray(data.macd_signal) && Array.isArray(data.macd_hist)) {
-                    this.macdSeries.setData(data.candles.map((c, i) => ({ time: c.time, value: data.macd_line[i] })));
-                    this.macdSignalSeries.setData(data.candles.map((c, i) => ({ time: c.time, value: data.macd_signal[i] })));
+                    this.macdSeries.setData(
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.macd_line[i] }))
+                            .filter((p) => p.value != null)
+                    );
+                    this.macdSignalSeries.setData(
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.macd_signal[i] }))
+                            .filter((p) => p.value != null)
+                    );
                     this.macdHistSeries.setData(
-                        data.candles.map((c, i) => ({
-                            time: c.time,
-                            value: data.macd_hist[i],
-                            color: data.macd_hist[i] >= 0 ? this.CONFIG.COLORS.up : this.CONFIG.COLORS.down
-                        }))
+                        data.candles
+                            .map((c, i) => ({ time: c.time, value: data.macd_hist[i] }))
+                            .filter((p) => p.value != null)
+                            .map((p) => ({
+                                time: p.time,
+                                value: p.value,
+                                color: p.value >= 0 ? this.CONFIG.COLORS.up : this.CONFIG.COLORS.down,
+                            }))
                     );
                 }
 
@@ -1527,8 +2025,9 @@
                 this.updateRsiDisplay(data.rsi ?? (data.summary && data.summary.rsi));
                  this.updateFearGreed(data.fear_greed || null);
                 
-                this.elements.symbol.textContent = this.state.currentSymbol;
-                document.title = `${this.formatter.format(currentPrice)} | ${this.state.currentSymbol}`;
+                const displaySymbol = this.formatSymbolDisplay(this.state.currentSymbol);
+                this.elements.symbol.textContent = displaySymbol;
+                document.title = `${this.formatUsd(currentPrice)} | ${displaySymbol}`;
 
                 this.state.prevPrice = currentPrice;
 
@@ -1537,7 +2036,7 @@
             }
 
             updatePriceDisplay(price) {
-                this.elements.price.textContent = this.formatter.format(price);
+                this.elements.price.textContent = this.formatUsd(price);
                 
                 if (this.state.prevPrice !== 0) {
                     const isUp = price > this.state.prevPrice;
@@ -1599,11 +2098,28 @@
                 const select = this.elements.select;
                 if (!select) return;
 
+                const langToggle = this.elements.langToggle;
+                if (langToggle) {
+                    langToggle.addEventListener('click', () => {
+                        this.state.language = this.state.language === 'ru' ? 'en' : 'ru';
+                        localStorage.setItem('arkana.lang', this.state.language);
+                        this.refreshFormatters();
+                        this.applyLocalization();
+                        if (this.state.lastData) {
+                            this.renderUI(this.state.lastData);
+                            if (this.state.defiRaw) {
+                                this.renderDefiLiquidity(this.state.defiRaw);
+                            }
+                            this.updateArbitrage();
+                        }
+                    });
+                }
+
                 const applySymbol = (rawValue) => {
                     const raw = (rawValue || '').trim();
                     const symbol = raw ? raw.toUpperCase() : 'BTCUSDT';
                     this.state.currentSymbol = symbol;
-                    this.elements.symbol.textContent = "Loading...";
+                    this.elements.symbol.textContent = this.t('labels.loading');
 
                     // Если это кастомный тикер, добавляем его в список (кроме опции "__CUSTOM__")
                     if (symbol !== '__CUSTOM__') {
@@ -1623,11 +2139,11 @@
                     }
 
                     this.updateData().then(() => {
-                        if (this.priceChart) {
-                            const ts = this.priceChart.timeScale();
-                            ts.fitContent();
-                            ts.scrollToRealTime();
-                            this.priceChart.priceScale('right').applyOptions({ autoScale: true });
+                        if (this.state.lastData) {
+                            this.setPriceVisibleRange(this.state.lastData);
+                            if (this.priceChart) {
+                                this.priceChart.priceScale('right').applyOptions({ autoScale: true });
+                            }
                         }
                     });
                 };
@@ -1636,7 +2152,7 @@
                     const value = event.target.value;
 
                     if (value === '__CUSTOM__') {
-                        const raw = window.prompt('Введите тикер пары, например AVAXUSDT');
+                        const raw = window.prompt(this.t('labels.promptPair'));
                         if (!raw) {
                             // Возвращаем предыдущее значение, если пользователь отменил ввод
                             select.value = this.state.currentSymbol;
@@ -1646,7 +2162,7 @@
                         const cleaned = raw.trim().toUpperCase();
                         // Простая валидация: только латинские буквы/цифры, длина 4–20 символов
                         if (!/^[A-Z0-9]{4,20}$/.test(cleaned)) {
-                            window.alert('Некорректный тикер. Используйте только латинские буквы и цифры, без пробелов.');
+                            window.alert(this.t('labels.invalidTicker'));
                             select.value = this.state.currentSymbol;
                             return;
                         }
@@ -1705,7 +2221,6 @@
                     if (this.priceChart) {
                         const priceContainer = document.getElementById('price-chart');
                         this.priceChart.resize(priceContainer.clientWidth, priceContainer.clientHeight);
-                        this.priceChart.timeScale().fitContent();
                     }
                     if (this.rsiChart) {
                         const rsiContainer = document.getElementById('rsi-chart');
@@ -1727,7 +2242,7 @@
                 if (!modal || !titleEl || !bodyEl || !closeBtn) return;
 
                 const open = (key) => {
-                    const def = DEFINITIONS[key];
+                    const def = I18N[this.state.language]?.definitions?.[key] || I18N.en.definitions[key];
                     if (!def) return;
                     titleEl.textContent = def.title;
                     bodyEl.textContent = def.body;

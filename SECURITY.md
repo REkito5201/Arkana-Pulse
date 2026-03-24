@@ -23,17 +23,24 @@
 
 - Эндпоинт `/metrics` отдаёт метрики приложения (число запросов, латентность) без проверки API-ключа.
 - В production ограничьте доступ к `/metrics` (например, в nginx по IP или через отдельный location с allow/deny, либо не проксируйте его наружу).
+- /metrics по-прежнему не через Nginx; доступ только из внутренней сети + при необходимости firewall для портов 3000/9090 на хосте.
 
 ## Сети Docker
 
-- **back** — внутренняя сеть (`internal: true`): только сервисы `api` и `redis`. Redis недоступен с хоста и из других контейнеров, кроме api.
-- **front** — сеть для nginx и api; трафик с хоста идёт только в nginx.
+- **back** — внутренняя сеть (`internal: true`): `api`, `redis`, `prometheus`, `grafana`. Redis недоступен с хоста; метрики API скрейпит только Prometheus по `api:8000`.
+- **front** — сеть для nginx и api; пользовательский трафик с хоста идёт в nginx (порты 80/443).
+
+## Grafana и Prometheus
+
+- После `docker compose up`: Grafana — `http://localhost:3000`, Prometheus — `http://localhost:9090` (см. `monitoring/README.md`).
+- Учётные данные Grafana задаются через `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` в `.env`.
 
 ## Обновления и уязвимости
 
 - **Dependabot** (см. `.github/dependabot.yml`) создаёт PR с обновлениями зависимостей и GitHub Actions.
-- **Trivy:** в CI выполняется сканирование образа API на уязвимости (HIGH/CRITICAL). Локально: `./scripts/trivy-scan.sh arkana_pulse-api` (после сборки образа). Установка Trivy: [github.com/aquasecurity/trivy](https://github.com/aquasecurity/trivy#installation).
+- **Trivy:** в CI — скан **файловой системы** репозитория (`trivy-fs`) и **Docker-образа** API (`build`). Локально образ: `./scripts/trivy-scan.sh arkana_pulse-api`. Учитывается `.trivyignore`.
+- **Semgrep:** SAST в CI (`semgrep` job); каталог `static/` перечислен в `.semgrepignore`.
 
 ## Сообщение об уязвимости
 
-Если вы обнаружили уязвимость, опишите её по возможности без публичного раскрытия (например, через Issues с меткой security или по контакту, указанному в репозитории).
+Если вы обнаружили уязвимость, опишите её по возможности без публичного раскрытия (например, через Issues с меткой security или по контакту, указанному в репозитории) 

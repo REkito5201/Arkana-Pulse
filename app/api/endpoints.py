@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime
 from typing import Any, List
 
@@ -47,13 +48,28 @@ class RedisService:
         await redis_client.setex(lock_key, 300, "locked")
 
 
-def format_indicator_series(series: List[Any], precision: int = 2) -> List[float]:
+def format_indicator_series(series: List[Any], precision: int = 2) -> List[float | None]:
     """
-    Вспомогательная функция для очистки данных (DRY).
-    Превращает null/NaN в 0.0 и округляет значения.
-    Подходит для индикаторов, где нули в начале ряда не искажают шкалу.
+    Форматирование числовых индикаторов для графика.
+
+    Важно: NaN/None не должны подменяться нулями, иначе они ломают авто‑масштаб
+    графика при наличии нескольких оверлеев (BB/Ichimoku/MACD).
     """
-    return [round(float(x), precision) if x is not None else 0.0 for x in series]
+    formatted: List[float | None] = []
+    for value in series:
+        if value is None:
+            formatted.append(None)
+            continue
+        try:
+            f = float(value)
+        except (TypeError, ValueError):
+            formatted.append(None)
+            continue
+        if not math.isfinite(f):
+            formatted.append(None)
+            continue
+        formatted.append(round(f, precision))
+    return formatted
 
 
 def format_indicator_series_nullable(
@@ -68,11 +84,16 @@ def format_indicator_series_nullable(
     for value in series:
         if value is None:
             formatted.append(None)
-        else:
-            try:
-                formatted.append(round(float(value), precision))
-            except (TypeError, ValueError):
-                formatted.append(None)
+            continue
+        try:
+            f = float(value)
+        except (TypeError, ValueError):
+            formatted.append(None)
+            continue
+        if not math.isfinite(f):
+            formatted.append(None)
+            continue
+        formatted.append(round(f, precision))
     return formatted
 
 
@@ -121,7 +142,8 @@ async def get_historical_candles(symbol: str = Depends(validate_symbol)) -> dict
     )
 
     # Текущие значения для кэша и сигналов
-    current_rsi = rsi_series[-1] if rsi_series else 50.0
+    # Берём последнее конечное RSI, чтобы не подменять NaN/None нулями.
+    current_rsi = next((x for x in reversed(rsi_series) if x is not None), 50.0) if rsi_series else 50.0
     closes = df["close"].to_list()
     current_price = float(closes[-1]) if closes else 0.0
 

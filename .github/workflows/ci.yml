@@ -1,4 +1,4 @@
-# CI: сборка, линт, сканирование образов (Trivy).
+# CI: сборка, линт, Semgrep, Trivy (fs + image).
 name: CI
 
 on:
@@ -27,6 +27,29 @@ jobs:
       - name: Lint
         run: ruff check app entrypoint.py bot_runner.py --output-format=github
 
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Semgrep
+        run: pip install semgrep
+      - name: Semgrep scan
+        run: semgrep scan --config auto --error
+
+  trivy-fs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          trivyignores: .trivyignore
+          skip-dirs: .git,venv,__pycache__,.venv
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -44,8 +67,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: image
           image-ref: arkana_pulse-api:ci
