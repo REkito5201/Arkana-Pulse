@@ -1,7 +1,7 @@
 import logging
 
-import polars as pl
 import pandas_ta as ta
+import polars as pl
 
 logger = logging.getLogger(__name__)
 

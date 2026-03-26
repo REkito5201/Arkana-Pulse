@@ -2,8 +2,6 @@ import logging
 
 import aiohttp
 
-from app.core.config import settings
-
 logger = logging.getLogger(__name__)
 
 

@@ -1,10 +1,8 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
 
 import aiohttp
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,7 @@ class ArbitrageService:
     def __init__(self, http_timeout: float = 3.0) -> None:
         self.http_timeout = http_timeout
 
-    async def _fetch_json(self, session: aiohttp.ClientSession, url: str, params: dict) -> Optional[dict]:
+    async def _fetch_json(self, session: aiohttp.ClientSession, url: str, params: dict) -> dict | None:
         """Общий безопасный helper для HTTP‑запросов."""
         try:
             async with session.get(url, params=params, timeout=self.http_timeout) as resp:
@@ -57,14 +55,14 @@ class ArbitrageService:
                     logger.warning("Arbitrage HTTP %s %s: %s", url, params, resp.status)
                     return None
                 return await resp.json()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Arbitrage timeout %s %s", url, params)
             return None
         except Exception:
             logger.exception("Arbitrage network error %s %s", url, params)
             return None
 
-    async def _fetch_binance_ticker(self, session: aiohttp.ClientSession, symbol: str) -> Optional[Ticker]:
+    async def _fetch_binance_ticker(self, session: aiohttp.ClientSession, symbol: str) -> Ticker | None:
         data = await self._fetch_json(session, self.BINANCE_TICKER_URL, {"symbol": symbol.upper()})
         if not data or "price" not in data:
             return None
@@ -76,7 +74,7 @@ class ArbitrageService:
             return None
         return Ticker(exchange="binance", symbol=symbol.upper(), price=price)
 
-    async def _fetch_bybit_ticker(self, session: aiohttp.ClientSession, symbol: str) -> Optional[Ticker]:
+    async def _fetch_bybit_ticker(self, session: aiohttp.ClientSession, symbol: str) -> Ticker | None:
         # Bybit ожидает пары без слэша, аналогично Binance (BTCUSDT).
         data = await self._fetch_json(
             session,
@@ -97,7 +95,7 @@ class ArbitrageService:
             return None
         return Ticker(exchange="bybit", symbol=symbol.upper(), price=price)
 
-    async def _fetch_okx_ticker(self, session: aiohttp.ClientSession, symbol: str) -> Optional[Ticker]:
+    async def _fetch_okx_ticker(self, session: aiohttp.ClientSession, symbol: str) -> Ticker | None:
         # OKX использует формат BTC-USDT, поэтому аккуратно трансформируем символ.
         base = symbol[:-4]
         quote = symbol[-4:]
@@ -121,7 +119,7 @@ class ArbitrageService:
             return None
         return Ticker(exchange="okx", symbol=symbol.upper(), price=price)
 
-    async def fetch_tickers(self, symbol: str) -> List[Ticker]:
+    async def fetch_tickers(self, symbol: str) -> list[Ticker]:
         """
         Параллельно запрашивает цену пары на нескольких биржах.
 
@@ -136,7 +134,7 @@ class ArbitrageService:
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        tickers: List[Ticker] = []
+        tickers: list[Ticker] = []
         for res in results:
             if isinstance(res, Exception):
                 logger.exception("Arbitrage task raised: %s", res)
@@ -147,7 +145,7 @@ class ArbitrageService:
         return tickers
 
     @staticmethod
-    def find_opportunity(symbol: str, tickers: List[Ticker], min_spread_pct: float = 0.1) -> Optional[ArbitrageOpportunity]:
+    def find_opportunity(symbol: str, tickers: list[Ticker], min_spread_pct: float = 0.1) -> ArbitrageOpportunity | None:
         """
         Ищет простейший арбитраж «купи на X, продай на Y».
 

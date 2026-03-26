@@ -1,18 +1,18 @@
 import json
 import math
 from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.config import settings
 from app.core.redis import redis_client
 from app.core.security import enforce_api_key, rate_limit, validate_symbol
+from app.engine.arbitrage import ArbitrageService
 from app.engine.collectors import ExchangeCollector
+from app.engine.defi_liquidity import DefiLiquidityService
 from app.engine.fear_greed import FearGreedService
 from app.engine.scanner import MarketScanner
-from app.engine.arbitrage import ArbitrageService
-from app.engine.defi_liquidity import DefiLiquidityService
 
 router = APIRouter(
     dependencies=[Depends(enforce_api_key), Depends(rate_limit)],
@@ -48,14 +48,14 @@ class RedisService:
         await redis_client.setex(lock_key, 300, "locked")
 
 
-def format_indicator_series(series: List[Any], precision: int = 2) -> List[float | None]:
+def format_indicator_series(series: list[Any], precision: int = 2) -> list[float | None]:
     """
     Форматирование числовых индикаторов для графика.
 
     Важно: NaN/None не должны подменяться нулями, иначе они ломают авто‑масштаб
     графика при наличии нескольких оверлеев (BB/Ichimoku/MACD).
     """
-    formatted: List[float | None] = []
+    formatted: list[float | None] = []
     for value in series:
         if value is None:
             formatted.append(None)
@@ -73,14 +73,14 @@ def format_indicator_series(series: List[Any], precision: int = 2) -> List[float
 
 
 def format_indicator_series_nullable(
-    series: List[Any], precision: int = 2
-) -> List[float | None]:
+    series: list[Any], precision: int = 2
+) -> list[float | None]:
     """
     Форматирование для индикаторов, где 0.0 — некорректная замена NaN.
     Возвращает None для пустых значений, чтобы фронтенд видел разрывы в серии,
     а не рисовал линии на нулевой цене (актуально для Ichimoku).
     """
-    formatted: List[float | None] = []
+    formatted: list[float | None] = []
     for value in series:
         if value is None:
             formatted.append(None)

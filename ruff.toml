@@ -7,7 +7,7 @@ exclude = ["venv", ".git", "__pycache__"]
 
 [lint]
 select = ["E", "F", "I", "UP"]
-ignore = []
+ignore = ["E501"]
 
 [lint.isort]
 known-first-party = ["app"]

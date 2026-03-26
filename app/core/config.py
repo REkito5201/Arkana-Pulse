@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, List
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 def _read_secret_from_file(path: str | Path) -> str:
     """Читает значение секрета из файла (без лишних пробелов и переводов строк)."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read().strip()
 
 
@@ -39,7 +38,7 @@ class Settings(BaseSettings):
     WEBAPP_URL: str = "http://localhost:8000"
 
     # --- CORS ---
-    BACKEND_CORS_ORIGINS: List[str] = ["*"]
+    BACKEND_CORS_ORIGINS: list[str] = ["*"]
 
     # --- API‑ключ ---
     API_KEY: SecretStr | None = None
@@ -61,7 +60,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def resolve_secret_files(self) -> "Settings":
+    def resolve_secret_files(self) -> Settings:
         """Подставляет секреты из файлов, если заданы переменные *_FILE (Docker secrets)."""
         file_suffix = "_FILE"
         for name in ("BOT_TOKEN", "API_KEY", "BINANCE_API_SECRET"):

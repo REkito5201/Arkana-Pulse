@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security.api_key import APIKeyHeader
@@ -13,7 +12,7 @@ from app.core.redis import redis_client
 logger = logging.getLogger(__name__)
 
 
-_API_KEY: Optional[str] = (
+_API_KEY: str | None = (
     settings.API_KEY.get_secret_value() if settings.API_KEY is not None else None
 )
 _API_KEY_HEADER_NAME = settings.API_KEY_HEADER_NAME
@@ -21,7 +20,7 @@ _API_KEY_HEADER_NAME = settings.API_KEY_HEADER_NAME
 api_key_header = APIKeyHeader(name=_API_KEY_HEADER_NAME, auto_error=False)
 
 
-async def enforce_api_key(api_key: Optional[str] = Depends(api_key_header)) -> None:
+async def enforce_api_key(api_key: str | None = Depends(api_key_header)) -> None:
     """
     Простейшая проверка API‑ключа.
 

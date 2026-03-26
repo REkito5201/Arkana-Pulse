@@ -1,9 +1,8 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any
 
 import aiohttp
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ class DefiLiquidityService:
 
     BASE_URL = "https://api.dexscreener.com/latest/dex"
 
-    async def _fetch_json(self, url: str, params: Optional[dict[str, Any]] = None) -> Optional[dict[str, Any]]:
+    async def _fetch_json(self, url: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """Небольшой helper для HTTP‑запросов с логированием ошибок."""
         try:
             async with aiohttp.ClientSession() as session:
@@ -49,7 +48,7 @@ class DefiLiquidityService:
             logger.exception("DeFi API network error for %s params=%s", url, params)
             return None
 
-    async def search_pools(self, query: str, limit: int = 10) -> List[DefiPool]:
+    async def search_pools(self, query: str, limit: int = 10) -> list[DefiPool]:
         """
         Ищет пулы ликвидности по символу токена или его адресу.
 
@@ -62,7 +61,7 @@ class DefiLiquidityService:
             return []
 
         pairs = data.get("pairs") or []
-        pools: List[DefiPool] = []
+        pools: list[DefiPool] = []
 
         for item in pairs:
             try:
