@@ -15,6 +15,7 @@ services:
       - .env
     environment:
       REDIS_URL: redis://redis:6379/0
+      NUBMA_DISABLE_JIT: true
     depends_on:
       - redis
     networks:
