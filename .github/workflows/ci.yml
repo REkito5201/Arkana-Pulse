@@ -74,6 +74,7 @@ jobs:
         with:
           context: .
           load: true
+          pull: true
           tags: arkana_pulse-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
