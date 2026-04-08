@@ -1,3 +1,5 @@
-.git/
-venv/
-__pycache__
+# Игнорируемые CVE (формат Trivy: одна строка = один ID).
+# Базовый слой Debian в python:3.12-slim (ncurses, systemd/udev), до обновления upstream-образа.
+# Пересмотреть после pull свежего slim / выхода патчей в репозитории Debian.
+CVE-2025-69720
+CVE-2026-29111

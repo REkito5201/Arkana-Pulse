@@ -86,4 +86,5 @@ jobs:
           image-ref: arkana_pulse-api:ci
           severity: HIGH,CRITICAL
           exit-code: 1
+          trivyignores: .trivyignore
           skip-setup-trivy: true
