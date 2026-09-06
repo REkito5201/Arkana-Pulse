@@ -1,18 +1,17 @@
 - name: Развертывание ARKANA PULSE
   hosts: localhost
+  connection: local
+  vars:
+    project_dir: "{{ lookup('env', 'HOME') }}/Arkana-Pulse"
   tasks:
-    # - name: 1. Клонируем репозиторий проекта
-    #   git:
-    #     repo: 'https://github.com/REkito5201/Arkana-Pulse.git'
-    #     dest: /home/rekito5201/Arkana-Pulse
-
-    - name: 2. Создаем .env файл из шаблона
-      copy:
-        src: /home/rekito5201/Arkana-Pulse/.env.example
-        dest: /home/rekito5201/Arkana-Pulse/.env
+    - name: Создаем .env файл из шаблона
+      ansible.builtin.copy:
+        src: "{{ project_dir }}/.env.example"
+        dest: "{{ project_dir }}/.env"
         remote_src: yes
+        force: no
 
-    - name: 3. Поднимаем стек через Docker Compose
-      command: docker compose up -d --build
+    - name: Поднимаем стек через Docker Compose
+      ansible.builtin.command: docker compose up -d --build
       args:
-        chdir: /home/rekito5201/Arkana-Pulse
+        chdir: "{{ project_dir }}"
