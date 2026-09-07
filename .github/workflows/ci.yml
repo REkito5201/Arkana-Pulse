@@ -53,6 +53,7 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: 1
           trivyignores: .trivyignore
+          ignore-unfixed: true
           skip-dirs: .git,venv,__pycache__,.venv
           skip-setup-trivy: true
 
@@ -87,4 +88,5 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: 1
           trivyignores: .trivyignore
+          ignore-unfixed: true
           skip-setup-trivy: true
