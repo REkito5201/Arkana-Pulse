@@ -18,6 +18,8 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 3
     labels: ["dependencies"]
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "github-actions"
     directory: "/"
